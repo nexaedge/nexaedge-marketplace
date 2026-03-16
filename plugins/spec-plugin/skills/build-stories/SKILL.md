@@ -1,6 +1,6 @@
 ---
 name: build-stories
-description: "Break down a single version into executable story files. Reads the version spec, overall architecture, version-specific architecture, and roadmap, then creates ordered stories for engineers and designers. Use after /architect-version."
+description: "Break down a single version into executable story files. Reads the version spec, architecture, and roadmap, then creates ordered stories. Adapts to project type — code stories for engineers, deliverable stories for any project type. Use after /architect-version."
 argument-hint: "[version, e.g. v0.1-core-push]"
 ---
 
@@ -12,8 +12,9 @@ Your task: break a version into ordered story files, each sized for a single AI 
 2. Read the version architecture doc: `specs/<version>/architecture.md`
 3. Read the overall architecture: `specs/architecture.md`
 4. Read the roadmap: `specs/roadmap.md`
-5. Scan the existing codebase (Glob for source files, read key files) to understand what's already built
-6. Check for any existing stories in `specs/<version>/`
+5. **Read the project spec** — check **Project Context** for the project type
+6. Scan the existing workspace to understand what's already built/written
+7. Check for any existing stories in `specs/<version>/`
 
 Pay special attention to the version spec's **Definition of Done** — the final story or stories must directly satisfy these conditions.
 
@@ -22,7 +23,7 @@ Pay special attention to the version spec's **Definition of Done** — the final
 Break the version into stories following these principles:
 
 ### Sizing for AI Agents (NOT human teams)
-- **Optimize for AI agent context window**: each story must be completable without overwhelming the executing agent's context
+- **Optimize for AI agent context window**: each story must be completable without overwhelming the agent
 - A story that touches 15 files across 3 layers is **too broad**
 - A story that creates one config file is **too narrow**
 - Sweet spot: **one cohesive concern** per story
@@ -31,41 +32,48 @@ Break the version into stories following these principles:
 
 Every story must specify its **agent** — the agent type that will execute it:
 
-- **`engineer`** — Backend work, data layer, API endpoints, integrations, tests, and wiring UI into the codebase. Runs `/execute-task`.
-- **`designer`** — Visual UI creation: new pages, components, layouts, design system work. Runs `/interface-design`.
+**For code projects:**
+- **`engineer`** — Backend, data layer, API endpoints, integrations, tests, wiring UI. Runs `/execute-task`.
+- **`designer`** — Visual UI creation: new pages, components, layouts, design system. Runs `/interface-design`.
+
+**For non-code projects:**
+- **`engineer`** — The default executor. Runs `/execute-task` for any deliverable type (documents, analyses, research outputs). Despite the name, this agent handles all execution work.
 
 The orchestrator uses this field directly as `subagent_type` when spawning agents.
 
-#### The Design -> Engineer Pipeline
+#### The Design → Engineer Pipeline (Code Projects Only)
 
 For features with UI, use **paired stories**:
+1. **Design story** (`agent: designer`) — Creates visual components/layouts
+2. **Integration story** (`agent: engineer`) — Wires design into codebase
 
-1. **Design story** (`agent: designer`) — Creates the visual components/layouts
-2. **Integration story** (`agent: engineer`) — Wires the design into the codebase (data fetching, state, routing, API calls)
+Not every UI story needs pairing. Use judgment.
 
-Not every UI story needs pairing. Use judgment:
-- New page with significant visual design → paired
-- Adding to an existing page using established patterns → single engineer story
-- Backend with no UI → engineer story only
+### Testing in Stories (Code Projects)
 
-### Testing in Stories
 Each engineer story must include testing acceptance criteria proportional to complexity:
-
 - **Complex logic**: thorough unit tests
-- **Key components**: at least one test pass verifying primary behavior
-- **Simple glue**: no dedicated test criteria needed
+- **Key components**: at least one test pass
+- **Simple glue**: no dedicated tests
 - **Integration stories**: at least one integration test
 
-Include a `## Testing Guidance` section in each story.
+Include a `## Testing Guidance` section in each code story.
+
+### Verification in Stories (Non-Code Projects)
+
+Each story should include clear acceptance criteria that can be verified by reading/reviewing the output:
+- **Completeness**: does the deliverable cover everything specified?
+- **Quality**: does it meet the standards described in the architecture?
+- **Accuracy**: are facts, references, and claims correct?
 
 ### Ordering
-- Infrastructure/foundation stories come first
-- Data layer before API layer before UI layer
-- Design stories before their paired integration stories
-- Each story produces a **working increment** (compiles, passes all tests)
+- Foundation/prerequisite stories come first
+- For code: data layer → API → UI
+- Design stories before their integration stories
+- Each story produces a **working increment**
 
 ### Self-containment
-- Include enough context IN each story that the executing agent doesn't need to read 10 other documents
+- Include enough context in each story that the executing agent doesn't need to read 10 other documents
 - Inline the relevant architecture decisions
 
 ## Phase 3 — Write Story Files
@@ -81,20 +89,20 @@ Create each story as `specs/<version>/NNN-story-slug.md`:
 One paragraph describing what this story delivers.
 
 ## Prerequisites
-- What must exist before starting (files, services, prior stories)
+- What must exist before starting (prior stories, inputs, access)
 
 ## Deliverables
-- What exists after completion (new files, endpoints, components)
+- What exists after completion (new files, endpoints, documents, analyses)
 
 ## Acceptance Criteria
-- [ ] Concrete, testable condition 1
-- [ ] Concrete, testable condition 2
+- [ ] Concrete, verifiable condition 1
+- [ ] Concrete, verifiable condition 2
 
 ## Implementation Guidance
-Specific files to create/modify, patterns to follow, architecture decisions that apply.
+Specific guidance on how to produce the deliverable. For code: files to create/modify, patterns to follow. For non-code: sources to use, structure to follow, quality standards.
 
-## Testing Guidance
-What to test, at what level, and any fixtures/mocking needed.
+## Testing Guidance (code projects)
+What to test, at what level, and any fixtures needed.
 
 ## Architecture Context
 Inline the relevant decisions so the executor doesn't need to cross-reference.

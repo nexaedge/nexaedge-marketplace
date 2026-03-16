@@ -1,6 +1,6 @@
 # Spec Plugin
 
-A Claude Code plugin for spec-driven product development. Provides a complete pipeline from ideation to verified, shipped code — orchestrated by AI agents.
+A Claude Code plugin for spec-driven project execution. Provides a complete pipeline from ideation to verified, shipped deliverables — orchestrated by AI agents. Works with any project type: code, business, research, consulting.
 
 ## Pipeline
 
@@ -10,9 +10,9 @@ A Claude Code plugin for spec-driven product development. Provides a complete pi
 
 | Skill | Purpose |
 |-------|---------|
-| `/ideate` | Build a product specification through conversational refinement |
-| `/architect` | Create high-level technical architecture for the project |
-| `/plan` | Design an evolutionary product roadmap with version progression |
+| `/ideate` | Build a project specification through conversational refinement |
+| `/architect` | Create the implementation approach for the project |
+| `/plan` | Design an evolutionary delivery roadmap with version progression |
 | `/orchestrate` | Execute a version end-to-end with a coordinated agent team |
 
 The orchestrator runs a simple cycle per version:
@@ -23,6 +23,17 @@ The orchestrator runs a simple cycle per version:
 
 A version ships when the human confirms its Definition of Done is met.
 
+## Context-Aware
+
+Skills adapt to the workspace they're in:
+
+- **Code repo** (has package.json, Cargo.toml, etc.) → tech stack decisions, automated tests, build verification
+- **Document workspace** (organized by project, client, or topic) → structure-aware placement, document deliverables, criteria-based validation
+- **Empty directory** → asks what kind of project this is, adapts accordingly
+- **Nested project** (e.g., `clients/acme/billing/`) → respects parent structure, places specs in context
+
+The project spec's **Project Context** section captures what `/ideate` learned about the workspace, so downstream skills don't re-discover it.
+
 ## Agents
 
 | Agent | Role |
@@ -31,7 +42,7 @@ A version ships when the human confirms its Definition of Done is met.
 | `product-owner` | Story breakdown and retrospectives. |
 | `engineer` | Task execution — new stories and validation fixes. |
 | `designer` | Visual UI creation following the design system. |
-| `qa` | Writes validation specs and executes them against the live application. |
+| `qa` | Writes validation specs and executes them. Reports failures — never fixes. |
 
 All agents call `EnterWorktree` as their first action to work on an isolated copy of the repo.
 
@@ -39,13 +50,13 @@ All agents call `EnterWorktree` as their first action to work on an isolated cop
 
 | Skill | Description |
 |-------|-------------|
-| `/ideate` | Product spec through conversation |
-| `/architect` | Project-level architecture |
-| `/plan` | Evolutionary product roadmap (version progression) |
+| `/ideate` | Project spec through conversation — adapts to project type |
+| `/architect` | Project-level implementation approach |
+| `/plan` | Evolutionary delivery roadmap (version progression) |
 | `/architect-version` | Per-version architecture deep-dive |
 | `/build-stories` | Version → ordered story files |
-| `/execute-task` | Execute one task (story or fix) with working code |
-| `/validate-execution` | Write validation specs (if needed), execute them, guide human review |
+| `/execute-task` | Execute one task — code or deliverable |
+| `/validate-execution` | Validate against Definition of Done — tests or review |
 | `/run-retrospective` | Post-version lessons learned |
 | `/orchestrate` | Full version execution with agent team |
 
@@ -62,12 +73,12 @@ Agents work in isolated git worktrees to avoid conflicts:
 
 ```
 specs/
-├── <project-name>.md          # Product specification (from /ideate)
-├── architecture.md             # Technical architecture (from /architect)
+├── <project-name>.md          # Project specification (from /ideate)
+├── architecture.md             # Implementation approach (from /architect)
 ├── roadmap.md                  # Version progression (from /plan)
-├── v0.1-core-push.md           # Version specs (from /plan)
-├── v0.2-config-support.md
-├── v0.1-core-push/             # Per-version folders (from /orchestrate)
+├── v0.1-short-name.md          # Version specs (from /plan)
+├── v0.2-short-name.md
+├── v0.1-short-name/            # Per-version folders (from /orchestrate)
 │   ├── architecture.md         # Version architecture (from /architect-version)
 │   ├── stories.md              # Story index (from /build-stories)
 │   ├── 010-story-slug.md       # Story files
@@ -76,6 +87,8 @@ specs/
 │       └── 010-spec-name.md
 └── ...
 ```
+
+The `specs/` directory lives wherever the project lives — repo root, a subdirectory, or within a larger workspace.
 
 ## Installation
 

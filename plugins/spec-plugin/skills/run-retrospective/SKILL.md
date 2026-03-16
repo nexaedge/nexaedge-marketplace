@@ -1,6 +1,6 @@
 ---
 name: run-retrospective
-description: "Post-version retrospective that captures lessons learned, fixes documentation drift, and proposes skill improvements. Analyzes PROGRESS.md, story logs, QA results, and commit history to identify struggle patterns and knowledge worth preserving. Run after a version is shipped."
+description: "Post-version retrospective that captures lessons learned, fixes documentation drift, and proposes skill improvements. Analyzes PROGRESS.md, story logs, QA results, and commit/change history to identify struggle patterns and knowledge worth preserving. Run after a version is shipped."
 argument-hint: "[version, e.g. v0.1-core-push]"
 ---
 

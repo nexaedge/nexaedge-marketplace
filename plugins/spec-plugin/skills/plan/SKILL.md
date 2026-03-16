@@ -1,105 +1,99 @@
 ---
 name: plan
-description: "Design an evolutionary product roadmap through conversational refinement. Defines version progression (V0.1 → V1.0+) where each version delivers user-visible value. Produces version specs and a roadmap. Use after /ideate and /architect."
+description: "Design an evolutionary delivery roadmap through conversational refinement. Defines version progression where each version delivers tangible value. Adapts to project type — code releases, consulting milestones, research phases. Use after /ideate and /architect."
 argument-hint: "[project name]"
 ---
 
-Your task: design an evolutionary product roadmap by working with the user to decide what gets built first, what comes next, and what "done" looks like for each version.
+Your task: design an evolutionary delivery roadmap by working with the user to decide what gets done first, what comes next, and what "done" looks like for each version.
 
 ## Philosophy
 
-You are a product manager. Your job is to help the user decide the **order** in which their product comes to life. Each version is defined by what the user can do with it — not by what the engineer builds.
+You are a project manager. Your job is to help the user decide the **order** in which their project comes to life. Each version is defined by what it delivers — not by what gets built internally.
 
-- **Every version is usable.** Even the first version does one real thing end-to-end.
+- **Every version delivers something tangible.** Even the first version produces one real outcome.
 - **The user decides priority.** You propose, they choose. Never assume what matters most.
-- **Versions describe outcomes, not tasks.** "User can push a Markdown file and get a Google Doc" — not "implement parser module."
-- **Simple before complete.** The first version of any capability is the simplest version that works. Later versions refine it.
+- **Versions describe outcomes, not tasks.** Focus on what's different after each version ships.
+- **Simple before complete.** The first version of any capability is the simplest version that works.
 
 ## Phase 1 — Load Context
 
-1. Read the product spec: `specs/<project-name>.md`
+1. Read the project spec (find it in `specs/`)
 2. Read the architecture: `specs/architecture.md`
-3. Check if any `specs/v*.md` version files or `specs/roadmap.md` already exist
+3. Read the **Project Context** section from the spec — know the project type
+4. Check if any `specs/v*.md` version files or `specs/roadmap.md` already exist
 
 **If versions already exist**, proceed to the Re-Planning Flow (Phase 1B).
 **If no versions exist**, proceed to Phase 2.
 
 ### Phase 1B — Re-Planning Flow
 
-When the user calls `/plan` on an already-planned project, they want one of two things. Ask them:
+When the user calls `/plan` on an already-planned project, ask via AskUserQuestion:
 
-**Ask via AskUserQuestion:** "You already have a roadmap. What would you like to do?"
-- **Change scope or priorities** — Reorder versions, move features between versions, or remove/add features within existing versions.
-- **Expand the product** — Add new capabilities that weren't in the original spec. This likely means the product spec and architecture need updating too.
+"You already have a roadmap. What would you like to do?"
+- **Change scope or priorities** — Reorder versions, move deliverables between versions, or adjust scope.
+- **Expand the project** — Add new work that wasn't in the original spec.
 
-**If changing scope/priorities:**
-1. Show the current version sequence with a one-line summary each.
-2. Ask the user what they want to change. Examples: "Move X from V0.3 to V0.2", "Split V0.4 into two versions", "Swap the order of V0.3 and V0.4."
-3. Walk through the impact: if moving a feature earlier, what dependencies does it pull forward? If deferring something, does anything else depend on it?
-4. Update affected version specs and the roadmap.
-
-**If expanding the product:**
-1. Discuss the new capabilities with the user to understand scope.
-2. Flag that the product spec (`specs/<project-name>.md`) and architecture (`specs/architecture.md`) may need updates. Ask: "Should we update the product spec and architecture first, or sketch the versions and revisit those after?"
-3. If updating specs first: guide the user to run `/ideate` and `/architect` to amend those docs, then return to `/plan`.
-4. If sketching first: proceed with version planning, but note in the roadmap which spec/architecture sections need review.
+Handle each case as before (show current state, walk through impact, update affected specs).
 
 ## Phase 2 — Identify the Core
 
-Start from the product spec and ask the user to help you find the core.
+Start from the spec and ask the user to find the core.
 
-**Ask via AskUserQuestion:** "Looking at your product spec, what is the ONE thing this product must do? If it only did this one thing, would it still be worth building?"
+**Ask via AskUserQuestion:** "Looking at your project spec, what is the ONE thing this project must deliver? If it only did this one thing, would it still be worth doing?"
 
-This answer becomes V0.1 — the minimum viable version. Everything else layers on top.
+This becomes V0.1 — the minimum viable version.
 
 ## Phase 3 — Build the Version Sequence
 
-This is the most interactive phase. You'll work with the user to decide what goes into each version, one version at a time.
+Work with the user to decide what goes into each version.
 
-### Step 1: List the Capabilities
+### Step 1: List the Deliverables
 
-From the product spec, extract every distinct capability the product offers. Present them as a flat list to the user. Examples of capabilities (not tasks):
+From the spec, extract every distinct outcome the project delivers. Present them as a flat list.
+
+Adapt the framing to the project type:
+
+*Code projects:*
 - "User can do X"
-- "Product supports Y"
+- "System supports Y"
 - "Z is configurable"
 
-### Step 2: Identify What V0.1 Needs
+*Business/consulting projects:*
+- "Client receives X"
+- "Analysis of Y is complete"
+- "Decision on Z is documented"
 
-Given the core from Phase 2, ask the user which capabilities are **essential** for the first version vs. which can be simplified or skipped.
+*Research projects:*
+- "Question X is answered"
+- "Data on Y is collected and analyzed"
+- "Report on Z is delivered"
 
-**Ask via AskUserQuestion** for each decision point. Common patterns:
-- "V0.1 needs to do X. Should it use hardcoded defaults, or does it need configuration from the start?"
-- "The spec mentions A, B, and C. Which of these are needed for the core experience?"
-- "X depends on an external service. Should V0.1 work without it (e.g., mock/skip), or is it essential?"
+### Step 2: Define V0.1
 
-### Step 3: Layer Remaining Capabilities
+Given the core from Phase 2, ask what's essential for the first version vs. what can wait.
 
-After V0.1 is defined, present the remaining capabilities and ask the user to prioritize them into subsequent versions.
+### Step 3: Layer Remaining Deliverables
 
-**Ask via AskUserQuestion:** Present 3-5 remaining capabilities and ask which should come next. Repeat for each version until all capabilities are placed.
+After V0.1, present remaining deliverables and ask the user to prioritize into subsequent versions.
 
-For each version, challenge the user:
+For each version, challenge:
 - "Is this version doing too much? Should we split it?"
-- "This capability has a simple version and a full version. Should V0.X ship the simple version, with the full version in a later release?"
-- "These two capabilities are independent. Should they be in the same version or separate?"
+- "This deliverable has a simple version and a full version. Ship simple now?"
+- "These two deliverables are independent. Same version or separate?"
 
 ### Step 4: Define the V1.0 Milestone
 
-Once all capabilities are placed, ask the user:
-
-**Ask via AskUserQuestion:** "Which version is your V1.0 — the first version you'd give to someone else? What must be true for that?"
-
-Everything before V1.0 is V0.x (development versions). V1.0 and beyond are release versions.
+**Ask:** "Which version is your V1.0 — the first version that's 'complete enough' to present, ship, or hand off?"
 
 ### Version Numbering
 
-- **V0.x** (0.1, 0.2, ...) — Development versions. Each adds capability. May have rough edges, simplified behavior, or require manual setup.
-- **V1.0** — First version ready for other people. Distribution, onboarding, and core features complete.
+- **V0.x** (0.1, 0.2, ...) — Development versions. Each adds capability. May have rough edges.
+- **V1.0** — First complete version. Ready for its audience (users, clients, stakeholders).
 - **V1.x** (1.1, 1.2, ...) — Post-release enhancements.
 
 ## Phase 4 — Write Version Specs
 
-For each version, write `specs/vX.Y-short-name.md` with this structure:
+For each version, write `specs/vX.Y-short-name.md`:
 
 ```markdown
 # VX.Y: Version Title
@@ -109,32 +103,34 @@ For each version, write `specs/vX.Y-short-name.md` with this structure:
 
 ## What's New
 
-One paragraph: what changes for the user in this version.
-Focus on outcomes — what they can do now that they couldn't before.
+One paragraph: what changes after this version ships.
+Focus on outcomes — what's different now.
 
 ## Demo
 
-Concrete example of using the product after this version ships.
-Show the exact commands, inputs, and expected outputs a user would see.
+Concrete example of the version's output.
+
+For code projects: exact commands, inputs, expected outputs.
+For business projects: what the deliverable looks like, key content.
+For research projects: what the findings show, how they're presented.
 
 ## Capabilities
 
-### Added in this version:
-- (bulleted list of user-visible capabilities)
+### Delivered in this version:
+- (bulleted list of tangible outcomes)
 
 ### Simplified in this version (improved later):
-- (things that work but in a limited way — reference which version improves them)
+- (things that work but in a limited way)
 
 ### Not yet available:
-- (explicit list of what's deferred — reference which version adds it)
+- (explicit list of what's deferred)
 
 ## Definition of Done
 
-Checklist of concrete, verifiable conditions that must be true for this version
-to be considered shipped. Written from the user's perspective.
+Checklist of concrete, verifiable conditions.
 
-- [ ] User can do X and sees Y
-- [ ] Z works in scenario A and scenario B
+- [ ] Outcome X is delivered and verified
+- [ ] Stakeholder Y has reviewed Z
 - [ ] (etc.)
 
 ## Open Questions
@@ -144,27 +140,26 @@ to be considered shipped. Written from the user's perspective.
 
 ### Writing Principles
 
-- **Each version spec is readable standalone.** A reader should understand what this version delivers without reading other specs.
-- **Demo is mandatory.** If you can't write a concrete demo, the version scope is unclear. Go back and clarify.
-- **Definition of Done is the contract.** The orchestrator uses this to know when a version is shipped. Be specific and testable.
-- **No implementation details.** Don't mention modules, packages, functions, or architecture. That's for the execution phase.
-- **"Simplified in this version" is intentional.** It signals that the team shouldn't over-build — ship the simple version now, improve it later.
+- **Each version spec is readable standalone.**
+- **Demo is mandatory.** If you can't show a concrete example, the scope is unclear.
+- **Definition of Done is the contract.** The orchestrator uses this to know when a version is shipped.
+- **No implementation details.** That's for the architecture and execution phases.
 
 ## Phase 5 — Write Roadmap
 
-Write `specs/roadmap.md` with:
+Write `specs/roadmap.md`:
 
-1. **Vision** — One paragraph: what the product is and who it's for.
-2. **Version Progression** — Diagram showing all versions with what each adds.
-3. **Milestones** — Key checkpoints on the way to V1.0 and beyond.
-4. **V1.0 Release Criteria** — What must be true for the product to be ready for others.
-5. **Post-V1.0 Direction** — Brief list of V1.x enhancements (high-level, just direction).
-6. **Spec Review Notes** — If the roadmap surfaced gaps in the product spec or architecture, list what needs review.
+1. **Vision** — What the project is and who it's for
+2. **Version Progression** — Diagram showing all versions with what each delivers
+3. **Milestones** — Key checkpoints
+4. **V1.0 Criteria** — What must be true for the project to be "complete"
+5. **Post-V1.0 Direction** — Brief list of future enhancements
+6. **Spec Review Notes** — Gaps surfaced in the product spec or architecture
 
 ## Phase 6 — Final Review
 
-Present a summary to the user:
-- The version sequence from V0.1 to V1.0+
-- Key milestones and what makes V1.0 special
+Present a summary:
+- Version sequence from V0.1 to V1.0+
+- Key milestones
 - Any versions that feel uncertain or risky
-- Suggested next step: "Run `/orchestrate <version>` to execute each version in order, starting with V0.1. The orchestrator handles architecture, story breakdown, implementation, and QA for each version."
+- Suggested next step: "Run `/orchestrate <version>` to execute each version in order."

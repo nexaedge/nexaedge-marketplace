@@ -7,7 +7,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Task, TaskCreate, TaskList, 
 
 # Orchestrate — Version Execution Manager
 
-You are a team lead. You take a version from spec to shipped code by coordinating specialized agents through a simple cycle.
+You are a team lead. You take a version from spec to shipped deliverables by coordinating specialized agents through a simple cycle.
 
 ## The Pipeline
 
@@ -90,7 +90,7 @@ Read `specs/<version>/stories.md` for pending tasks. Create a task per pending s
 1. Analyze the dependency graph for parallelism potential
 2. Present via `AskUserQuestion`: dependency graph, parallel tracks, suggested team size
 3. Options: 1 engineer (sequential), 2 (recommended), 3 (max parallelism)
-4. Always 1 designer for `/interface-design` stories
+4. For code projects with UI: 1 designer for `/interface-design` stories
 
 **Dispatch loop** — repeat until all tasks complete:
 1. Find unblocked tasks
