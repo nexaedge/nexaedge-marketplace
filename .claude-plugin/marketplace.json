@@ -60,6 +60,13 @@
         "url": "anthropics/claude-plugins-official",
         "path": "plugins/commit-commands"
       }
+    },
+    {
+      "name": "chrome-devtools-mcp",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/ChromeDevTools/chrome-devtools-mcp.git"
+      }
     }
   ]
 }
