@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Marketplace v3] - 2026-03-18
+
+### Changed
+- fix: use owner/repo shorthand for git-subdir URLs, remove vercel plugin
+
 ## [Marketplace v2] - 2026-03-18
 
 ### Changed
