@@ -20,6 +20,54 @@
         "source": "github",
         "repo": "Dammyjay93/interface-design"
       }
+    },
+    {
+      "name": "typescript-lsp",
+      "source": {
+        "source": "git-subdir",
+        "url": "anthropics/claude-plugins-official",
+        "path": "plugins/typescript-lsp"
+      }
+    },
+    {
+      "name": "pyright-lsp",
+      "source": {
+        "source": "git-subdir",
+        "url": "anthropics/claude-plugins-official",
+        "path": "plugins/pyright-lsp"
+      }
+    },
+    {
+      "name": "rust-analyzer-lsp",
+      "source": {
+        "source": "git-subdir",
+        "url": "anthropics/claude-plugins-official",
+        "path": "plugins/rust-analyzer-lsp"
+      }
+    },
+    {
+      "name": "frontend-design",
+      "source": {
+        "source": "git-subdir",
+        "url": "anthropics/claude-plugins-official",
+        "path": "plugins/frontend-design"
+      }
+    },
+    {
+      "name": "commit-commands",
+      "source": {
+        "source": "git-subdir",
+        "url": "anthropics/claude-plugins-official",
+        "path": "plugins/commit-commands"
+      }
+    },
+    {
+      "name": "vercel",
+      "source": {
+        "source": "git-subdir",
+        "url": "anthropics/claude-plugins-official",
+        "path": "plugins/vercel"
+      }
     }
   ]
 }
