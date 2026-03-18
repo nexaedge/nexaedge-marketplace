@@ -2,36 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-
-This project maintains two independent versions:
+This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 - **Marketplace** (`metadata.version` in `.claude-plugin/marketplace.json`)
-- **Plugin: spec-plugin** (`version` in `plugins/spec-plugin/.claude-plugin/plugin.json`)
+- **Each plugin** (`version` in `plugins/<name>/.claude-plugin/plugin.json`)
 
-## [Plugin: spec-plugin v3.1.0] - 2025-03-16
+Versions are bumped automatically by CI on merge to main.
+
+## [Marketplace v1] - 2025-03-18
+
+### Added
+- Initial marketplace structure with spec-plugin as the first local plugin
+- Added interface-design as an external plugin (from Dammyjay93/interface-design)
+- Sequential versioning (`v1`, `v2`, ...) for marketplace and all plugins
+- CI workflow for automatic version bumping and changelog updates
+- Dynamic plugin detection in CI (bumps only changed plugins)
+- CLAUDE.md with marketplace and plugin format conventions
+
+### Changed
+- Renamed from spec-plugin repo to nexaedge-marketplace
+
+## [Plugin: spec-plugin v4] - 2025-03-18
+
+### Changed
+- Migrated to sequential versioning (from semver v3.1.0 to v4)
+
+## [Plugin: spec-plugin v3] - 2025-03-16
 
 ### Changed
 - Agent worktree lifecycle: agents now commit, merge to main, and clean up worktrees before reporting back to the team lead
 - All 5 agents enforce commit-merge-cleanup flow before SendMessage
 
-## [Plugin: spec-plugin v3.0.0] - 2025-03-10
+## [Plugin: spec-plugin v2] - 2025-03-10
 
 ### Added
 - Context-aware project type detection (code repo, document workspace, empty directory, nested project)
 - Skills adapt behavior based on workspace context
-- Project Context section in specs captures workspace details for downstream skills
-
-### Changed
-- All skills now read workspace context before executing
-
-## [Plugin: spec-plugin v2.0.0] - 2025-03-05
+- Evolutionary delivery: projects broken into versions, each with its own architecture, stories, and validation
+- Pipeline flow: /ideate -> /architect -> /plan -> /orchestrate
 
 ### Changed
 - Refactored to version-based execution pipeline
-- Evolutionary delivery: projects broken into versions, each with its own architecture, stories, and validation
-- Pipeline flow: /ideate → /architect → /plan → /orchestrate
+- All skills now read workspace context before executing
 
-## [Plugin: spec-plugin v1.0.0] - 2025-03-05
+## [Plugin: spec-plugin v1] - 2025-03-05
 
 ### Added
 - Initial plugin with spec-driven development pipeline
@@ -39,10 +52,3 @@ This project maintains two independent versions:
 - 9 skills: ideate, architect, plan, architect-version, build-stories, execute-task, validate-execution, run-retrospective, orchestrate
 - QA commit guard hook
 - Worktree isolation for all agents
-
-## [Marketplace v1.0.0] - 2025-03-18
-
-### Added
-- Initial marketplace structure with spec-plugin as the first plugin
-- Separated marketplace versioning from plugin versioning
-- CLAUDE.md with development conventions
