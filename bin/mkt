@@ -699,7 +699,7 @@ cmd_enable() {
 
   # Get all marketplace plugins and their install/enabled status
   local installed_json
-  installed_json=$(claude plugin list --json 2>/dev/null | sed 's/\[>4[;0-9]*m//g' || echo "[]")
+  installed_json=$(claude plugin list --json 2>/dev/null | tr -d '\033' | sed 's/\[>[0-9;]*m//g' || echo "[]")
 
   local -a all_plugins=()
   while IFS= read -r pname; do
@@ -714,11 +714,8 @@ cmd_enable() {
     is_enabled=$(echo "$installed_json" | jq -r --arg id "${pname}@nexaedge-marketplace" \
       '.[] | select(.id == $id) | .enabled // false' 2>/dev/null || echo "false")
 
-    if [[ "$is_enabled" == "true" ]]; then
-      items+=("✔ $pname")
-    else
-      items+=("  $pname")
-    fi
+    [[ "$is_enabled" == "true" ]] && continue
+    items+=("$pname")
   done
 
   local -a targets=()
@@ -726,8 +723,12 @@ cmd_enable() {
   if [[ $# -ge 1 ]]; then
     targets+=("$1")
   else
+    if [[ ${#items[@]} -eq 0 ]]; then
+      echo "→ All plugins are already enabled."
+      exit 0
+    fi
+
     while IFS= read -r line; do
-      line=$(echo "$line" | sed 's/^[✔ ]*//')
       [[ -n "$line" ]] && targets+=("$line")
     done < <(fzf_multi_pick "Select plugins to enable (TAB to toggle, ENTER to confirm)" "${items[@]}" || true)
 
@@ -762,7 +763,7 @@ cmd_disable() {
   fi
 
   local installed_json
-  installed_json=$(claude plugin list --json 2>/dev/null | sed 's/\[>4[;0-9]*m//g' || echo "[]")
+  installed_json=$(claude plugin list --json 2>/dev/null | tr -d '\033' | sed 's/\[>[0-9;]*m//g' || echo "[]")
 
   # Only show enabled plugins
   local -a enabled_plugins=()
