@@ -213,12 +213,28 @@ deploy() {
 
     case "$action" in
       +)
-        [[ $is_installed -eq 1 ]] && continue
-        echo ""
-        read -rp "Install '$pname' at user level? [y/N] " answer
-        if [[ "$answer" =~ ^[Yy]$ ]]; then
-          claude plugin install "${pname}@nexaedge-marketplace" --scope user
+        if [[ "$pname" == "${VENDORED_PLUGIN:-}" ]]; then
+          # Auto-install/update vendored-skills — no prompt
+          if [[ $is_installed -eq 0 ]]; then
+            echo ""
+            echo "→ Installing '$pname'..."
+            claude plugin install "${pname}@nexaedge-marketplace" --scope user 2>/dev/null || true
+          else
+            echo ""
+            echo "→ Updating '$pname'..."
+            claude plugin update "${pname}@nexaedge-marketplace" --scope user 2>/dev/null || true
+          fi
+          # Ensure enabled
+          claude plugin enable "${pname}@nexaedge-marketplace" --scope user 2>/dev/null || true
           print_plugin_skills "$pname"
+        else
+          [[ $is_installed -eq 1 ]] && continue
+          echo ""
+          read -rp "Install '$pname' at user level? [y/N] " answer
+          if [[ "$answer" =~ ^[Yy]$ ]]; then
+            claude plugin install "${pname}@nexaedge-marketplace" --scope user
+            print_plugin_skills "$pname"
+          fi
         fi
         ;;
       -)
