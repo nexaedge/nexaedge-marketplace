@@ -1,0 +1,101 @@
+#compdef mkt
+# Zsh completion for mkt
+
+_mkt_root() {
+  local root="${MKT_ROOT:-${${(%):-%x}:A:h:h:h}}"
+  if [[ ! -d "$root/plugins" ]]; then
+    local mkt_bin="${commands[mkt]:-$(whence -p mkt 2>/dev/null)}"
+    [[ -n "$mkt_bin" ]] && root="${mkt_bin:A:h:h}"
+  fi
+  echo "$root"
+}
+
+_mkt_plugins() {
+  local root="$(_mkt_root)"
+  [[ -d "$root/plugins" ]] || return
+  local -a plugins
+  plugins=("$root"/plugins/*(/:t))
+  _describe 'plugin' plugins
+}
+
+_mkt_skills() {
+  local plugin="$opt_args[--plugin]"
+  [[ -z "$plugin" ]] && return
+
+  local root="$(_mkt_root)"
+  local skills_dir="$root/plugins/$plugin/skills"
+  [[ -d "$skills_dir" ]] || return
+  local -a skills
+  skills=("$skills_dir"/*(/:t))
+  _describe 'skill' skills
+}
+
+# Complete plugin/skill targets for remove (plugin or plugin/skill)
+_mkt_remove_targets() {
+  local root="$(_mkt_root)"
+  [[ -d "$root/plugins" ]] || return
+
+  local -a targets
+  for plugin_dir in "$root"/plugins/*/; do
+    [[ -d "$plugin_dir" ]] || continue
+    local pname="${plugin_dir:t}"
+    targets+=("$pname")
+    if [[ -d "$plugin_dir/skills" ]]; then
+      for skill_dir in "$plugin_dir"/skills/*/; do
+        [[ -d "$skill_dir" ]] || continue
+        targets+=("$pname/${skill_dir:t}")
+      done
+    fi
+  done
+  _describe 'target' targets
+}
+
+_mkt_add() {
+  _arguments \
+    '--plugin[Vendor skill into existing plugin]:plugin:_mkt_plugins' \
+    '(--help -h)'{--help,-h}'[Show help]' \
+    ':url:_urls'
+}
+
+_mkt_remove() {
+  _arguments \
+    '(--help -h)'{--help,-h}'[Show help]' \
+    ':target:_mkt_remove_targets'
+}
+
+_mkt_update() {
+  _arguments \
+    '--dry-run[Show changes without applying]' \
+    '--plugin[Filter by plugin]:plugin:_mkt_plugins' \
+    '--skill[Filter by skill (requires --plugin)]:skill:_mkt_skills' \
+    '(--help -h)'{--help,-h}'[Show help]'
+}
+
+_mkt() {
+  local -a commands=(
+    'add:Add a plugin or skill from a GitHub URL'
+    'remove:Remove a plugin or skill'
+    'update:Check vendored skills for upstream updates'
+    'completions:Output shell completion setup'
+  )
+
+  _arguments -C \
+    '(--help -h)'{--help,-h}'[Show help]' \
+    '1:command:->command' \
+    '*::arg:->args'
+
+  case "$state" in
+    command)
+      _describe 'command' commands
+      ;;
+    args)
+      case "$words[1]" in
+        add)    _mkt_add ;;
+        remove) _mkt_remove ;;
+        update) _mkt_update ;;
+      esac
+      ;;
+  esac
+}
+
+_mkt "$@"

@@ -1,0 +1,510 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BIN_DIR="$(cd "$(dirname "$0")" && pwd)"
+MARKETPLACE_ROOT="$(cd "$BIN_DIR/.." && pwd)"
+MARKETPLACE_JSON="$MARKETPLACE_ROOT/.claude-plugin/marketplace.json"
+
+source "$BIN_DIR/lib/github.sh"
+source "$BIN_DIR/lib/marketplace.sh"
+source "$BIN_DIR/lib/deploy.sh"
+
+# ── Usage ─────────────────────────────────────────────────────────────────────
+
+usage() {
+  cat <<EOF
+Usage: mkt <command> [options]
+
+Commands:
+  add          Add a plugin or skill from a GitHub URL
+  remove       Remove a plugin or a skill from a plugin
+  update       Check vendored skills for upstream updates
+  completions  Output shell completion setup instructions
+
+Run 'mkt <command> --help' for command-specific usage.
+EOF
+  exit 1
+}
+
+usage_remove() {
+  cat <<EOF
+Usage: mkt remove <target>
+
+Remove a plugin or a specific skill from the marketplace.
+
+Target format:
+  <plugin>            Remove the entire plugin (marketplace entry + local files)
+  <plugin>/<skill>    Remove a single skill from a local plugin.
+                      If it was the last skill, the plugin is also removed.
+
+Examples:
+  mkt remove seo-audit
+  mkt remove seo-audit/seo-audit
+EOF
+  exit 1
+}
+
+usage_add() {
+  cat <<EOF
+Usage: mkt add [--plugin <name>] <github-url>
+
+Add an external plugin or skill to the marketplace.
+
+Options:
+  --plugin <name>   Vendor a bare skill into an existing local plugin
+                    instead of creating a new one.
+
+URL types:
+  Repo root     https://github.com/owner/repo
+    → plugin.json found:      adds as url source
+    → marketplace.json found: adds all local plugins as git-subdir
+
+  Subdirectory  https://github.com/owner/repo/tree/branch/path
+    → plugin.json found:      adds as git-subdir source
+    → SKILL.md found:         vendors as a local plugin skill
+EOF
+  exit 1
+}
+
+usage_update() {
+  cat <<EOF
+Usage: mkt update [--dry-run] [--plugin <name>] [--skill <name>]
+
+Check vendored skills for upstream updates and re-download newer versions.
+
+Options:
+  --dry-run          Show what would be updated without making changes.
+  --plugin <name>    Only check skills in the specified plugin.
+  --skill <name>     Only check a specific skill (requires --plugin).
+EOF
+  exit 1
+}
+
+# ── Add: subdirectory with plugin.json ────────────────────────────────────────
+
+add_subdir_plugin() {
+  echo "→ Found plugin.json at $GH_SUBPATH"
+
+  local plugin_name
+  plugin_name=$(gh_file_content "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH/.claude-plugin/plugin.json" "$GH_REF" | jq -r '.name')
+  echo "→ Plugin name: $plugin_name"
+
+  local source_json
+  source_json=$(build_gitsubdir_source "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH" "$GH_REF")
+
+  add_plugin_entry "$plugin_name" "$source_json" && return 0 || return 1
+}
+
+# ── Add: subdirectory with bare SKILL.md ──────────────────────────────────────
+
+add_subdir_skill() {
+  local skill_name="$1"
+  local target_plugin="$2"
+
+  echo "→ Found bare skill '$skill_name' (no plugin wrapper)"
+
+  local plugin_name="${target_plugin:-$skill_name}"
+  local plugin_dir="$MARKETPLACE_ROOT/plugins/$plugin_name"
+
+  # Validate --plugin target if specified
+  if [[ -n "$target_plugin" && ! -d "$plugin_dir" ]]; then
+    echo "Error: Target plugin '$target_plugin' does not exist at plugins/$target_plugin/"
+    echo "  Run without --plugin first to create it, then use --plugin to add more skills."
+    return 1
+  fi
+
+  echo "→ Vendoring into plugin '$plugin_name'..."
+
+  local commit_sha
+  commit_sha=$(gh_resolve_sha "$GH_OWNER" "$GH_REPO" "$GH_REF")
+  echo "→ Pinned to commit ${commit_sha:0:12}"
+
+  vendor_skill "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH" "$skill_name" "$plugin_name" "$commit_sha"
+
+  # Ensure plugin is registered in marketplace
+  if ! plugin_exists "$plugin_name"; then
+    add_plugin_entry "$plugin_name" "\"./$plugin_name\""
+  fi
+}
+
+# ── Add: repo root with marketplace.json ──────────────────────────────────────
+
+add_repo_marketplace() {
+  echo "→ Found marketplace.json — discovering plugins..."
+
+  local content
+  content=$(gh_file_content "$GH_OWNER" "$GH_REPO" ".claude-plugin/marketplace.json" "$GH_REF")
+
+  local plugin_root
+  plugin_root=$(echo "$content" | jq -r '.metadata.pluginRoot // "."')
+  plugin_root="${plugin_root#./}"
+
+  local added=0
+
+  while IFS= read -r plugin_name; do
+    [[ -z "$plugin_name" ]] && continue
+
+    local plugin_source
+    plugin_source=$(echo "$content" | jq -r --arg n "$plugin_name" \
+      '.plugins[] | select(.name == $n) | .source')
+
+    if [[ "$plugin_source" != ./* ]]; then
+      echo "  → Skipping '$plugin_name' (external source)"
+      continue
+    fi
+
+    local plugin_path="${plugin_source#./}"
+    local full_path
+    [[ -n "$plugin_root" && "$plugin_root" != "." ]] \
+      && full_path="$plugin_root/$plugin_path" \
+      || full_path="$plugin_path"
+
+    echo "  → Found local plugin '$plugin_name' at $full_path"
+
+    local source_json
+    source_json=$(build_gitsubdir_source "$GH_OWNER" "$GH_REPO" "$full_path" "$GH_REF")
+
+    if add_plugin_entry "$plugin_name" "$source_json"; then
+      added=$((added + 1))
+    fi
+  done <<< "$(echo "$content" | jq -r '.plugins[].name')"
+
+  return $((added == 0))
+}
+
+# ── Add: repo root with plugin.json ──────────────────────────────────────────
+
+add_repo_plugin() {
+  echo "→ Found plugin.json — single plugin repo"
+
+  local plugin_name
+  plugin_name=$(gh_file_content "$GH_OWNER" "$GH_REPO" ".claude-plugin/plugin.json" "$GH_REF" | jq -r '.name')
+  echo "→ Plugin name: $plugin_name"
+
+  # Use url source with HTTPS (avoids SSH clone bug)
+  local source_json
+  source_json=$(jq -n --arg url "https://github.com/$GH_OWNER/$GH_REPO.git" \
+    '{source: "url", url: $url}')
+
+  add_plugin_entry "$plugin_name" "$source_json" && return 0 || return 1
+}
+
+# ── Add: detect URL type and dispatch ─────────────────────────────────────────
+
+detect_and_add_subdir() {
+  local target_plugin="$1"
+
+  if gh_file_exists "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH/.claude-plugin/plugin.json" "$GH_REF"; then
+    if [[ -n "$target_plugin" ]]; then
+      echo "Error: --plugin cannot be used with a URL that has plugin.json"
+      exit 1
+    fi
+    add_subdir_plugin
+    return $?
+  fi
+
+  if gh_file_exists "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH/SKILL.md" "$GH_REF"; then
+    add_subdir_skill "$(basename "$GH_SUBPATH")" "$target_plugin"
+    return $?
+  fi
+
+  if gh_file_exists "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH/skills" "$GH_REF"; then
+    echo "→ Found skills/ directory at $GH_SUBPATH but no plugin.json"
+    echo "  This looks like a plugin without a manifest. Consider adding it manually."
+    exit 1
+  fi
+
+  echo "Error: No plugin.json or SKILL.md found at $GH_SUBPATH"
+  exit 1
+}
+
+detect_and_add_repo() {
+  if gh_file_exists "$GH_OWNER" "$GH_REPO" ".claude-plugin/marketplace.json" "$GH_REF"; then
+    add_repo_marketplace
+    return $?
+  fi
+
+  if gh_file_exists "$GH_OWNER" "$GH_REPO" ".claude-plugin/plugin.json" "$GH_REF"; then
+    add_repo_plugin
+    return $?
+  fi
+
+  echo "Error: Repository has neither plugin.json nor marketplace.json"
+  exit 1
+}
+
+# ── Command: add ──────────────────────────────────────────────────────────────
+
+cmd_add() {
+  local target_plugin=""
+  local url=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --plugin)  target_plugin="$2"; shift 2 ;;
+      --help|-h) usage_add ;;
+      -*)        echo "Error: Unknown option $1"; usage_add ;;
+      *)         url="$1"; shift ;;
+    esac
+  done
+
+  [[ -z "$url" ]] && usage_add
+
+  parse_github_url "$url"
+  echo "→ Parsed: owner=$GH_OWNER repo=$GH_REPO ref=${GH_REF:-default} path=${GH_SUBPATH:-root}"
+
+  local has_vendor=0
+
+  if [[ -n "$GH_SUBPATH" ]]; then
+    detect_and_add_subdir "$target_plugin"
+    # Check if we vendored (created local plugin files)
+    [[ -n "$target_plugin" || ! -f "$MARKETPLACE_ROOT/plugins/$(basename "$GH_SUBPATH")/.claude-plugin/plugin.json" ]] || has_vendor=1
+    # Simpler: check if any skill was vendored by looking for .upstream.json
+    if find "$MARKETPLACE_ROOT/plugins" -name '.upstream.json' -newer "$MARKETPLACE_JSON" -print -quit 2>/dev/null | grep -q .; then
+      has_vendor=1
+    fi
+  else
+    if [[ -n "$target_plugin" ]]; then
+      echo "Error: --plugin can only be used with subdirectory URLs pointing to bare skills"
+      exit 1
+    fi
+    detect_and_add_repo
+  fi
+
+  # Deploy
+  local stage_paths=(".claude-plugin/marketplace.json")
+  [[ $has_vendor -eq 1 ]] && stage_paths+=("plugins/")
+
+  deploy "feat: add plugin(s) from $GH_OWNER/$GH_REPO" "${stage_paths[@]}"
+  echo "→ Done!"
+}
+
+# ── Command: update ───────────────────────────────────────────────────────────
+
+cmd_update() {
+  local dry_run=0
+  local filter_plugin=""
+  local filter_skill=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --dry-run)  dry_run=1; shift ;;
+      --plugin)   filter_plugin="$2"; shift 2 ;;
+      --skill)    filter_skill="$2"; shift 2 ;;
+      --help|-h)  usage_update ;;
+      *)          echo "Error: Unknown argument $1"; usage_update ;;
+    esac
+  done
+
+  if [[ -n "$filter_skill" && -z "$filter_plugin" ]]; then
+    echo "Error: --skill requires --plugin"
+    exit 1
+  fi
+
+  echo "→ Scanning for vendored skills..."
+  echo ""
+
+  local updated=0 checked=0
+
+  while IFS= read -r upstream_file; do
+    [[ -z "$upstream_file" ]] && continue
+
+    local rel_path="${upstream_file#$MARKETPLACE_ROOT/plugins/}"
+    local plugin_name="${rel_path%%/*}"
+    local skill_name
+    skill_name="$(basename "$(dirname "$upstream_file")")"
+
+    # Apply filters
+    [[ -n "$filter_plugin" && "$plugin_name" != "$filter_plugin" ]] && continue
+    [[ -n "$filter_skill" && "$skill_name" != "$filter_skill" ]] && continue
+
+    checked=$((checked + 1))
+
+    check_and_update_skill "$upstream_file" "$plugin_name" "$skill_name" "$dry_run" \
+      && updated=$((updated + 1))
+
+  done < <(find "$MARKETPLACE_ROOT/plugins" -name '.upstream.json' -type f 2>/dev/null)
+
+  echo ""
+
+  if [[ $checked -eq 0 ]]; then
+    echo "→ No vendored skills found."
+    exit 0
+  fi
+
+  echo "→ Checked $checked skill(s), $updated update(s)"
+
+  if [[ $dry_run -eq 1 ]]; then
+    echo "→ Dry run — no changes made."
+    exit 0
+  fi
+
+  if [[ $updated -eq 0 ]]; then
+    echo "→ Everything is up to date."
+    exit 0
+  fi
+
+  deploy "feat: update $updated vendored skill(s)" "plugins/"
+  echo "→ Done!"
+}
+
+# Check a single vendored skill for updates. Returns 0 if updated, 1 if skipped.
+check_and_update_skill() {
+  local upstream_file="$1"
+  local plugin_name="$2"
+  local skill_name="$3"
+  local dry_run="$4"
+
+  local repo_url remote_path pinned_commit
+  repo_url=$(jq -r '.repository' "$upstream_file")
+  remote_path=$(jq -r '.path' "$upstream_file")
+  pinned_commit=$(jq -r '.commit' "$upstream_file")
+
+  local owner_repo
+  owner_repo=$(gh_parse_repo_url "$repo_url")
+  if [[ -z "$owner_repo" ]]; then
+    echo "  ⚠ Cannot parse repository URL: $repo_url (skipping $plugin_name/$skill_name)"
+    return 1
+  fi
+
+  local owner="${owner_repo%%/*}"
+  local repo="${owner_repo##*/}"
+
+  echo "  [$plugin_name/$skill_name] $owner/$repo:$remote_path"
+  echo "    pinned: ${pinned_commit:0:12}"
+
+  local latest_commit
+  latest_commit=$(gh_latest_commit_for_path "$owner" "$repo" "$remote_path")
+
+  if [[ -z "$latest_commit" ]]; then
+    echo "    ⚠ Could not resolve latest commit (skipping)"
+    return 1
+  fi
+
+  echo "    latest: ${latest_commit:0:12}"
+
+  if [[ "$pinned_commit" == "$latest_commit" ]]; then
+    echo "    ✓ up to date"
+    return 1
+  fi
+
+  echo "    ↑ update available"
+
+  if [[ $dry_run -eq 1 ]]; then
+    return 0
+  fi
+
+  update_skill "$(dirname "$upstream_file")" "$owner" "$repo" "$remote_path" "$latest_commit" "$repo_url"
+  return 0
+}
+
+# ── Command: remove ────────────────────────────────────────────────────────────
+
+cmd_remove() {
+  [[ $# -lt 1 || "$1" == "--help" || "$1" == "-h" ]] && usage_remove
+
+  local target="$1"
+  local plugin_name=""
+  local skill_name=""
+
+  if [[ "$target" == */* ]]; then
+    plugin_name="${target%%/*}"
+    skill_name="${target#*/}"
+  else
+    plugin_name="$target"
+  fi
+
+  local stage_paths=()
+  REMOVED_PLUGIN=""
+
+  if [[ -n "$skill_name" ]]; then
+    # Remove a single skill
+    echo "→ Removing skill '$skill_name' from plugin '$plugin_name'..."
+    remove_local_skill "$plugin_name" "$skill_name"
+    stage_paths+=("plugins/")
+    [[ -n "$REMOVED_PLUGIN" ]] && stage_paths+=(".claude-plugin/marketplace.json")
+  else
+    # Remove entire plugin
+    echo "→ Removing plugin '$plugin_name'..."
+
+    if is_local_plugin "$plugin_name"; then
+      remove_local_plugin "$plugin_name"
+      stage_paths+=("plugins/$plugin_name")
+    fi
+
+    if plugin_exists "$plugin_name"; then
+      remove_plugin_entry "$plugin_name"
+      stage_paths+=(".claude-plugin/marketplace.json")
+    fi
+
+    if [[ ${#stage_paths[@]} -eq 0 ]]; then
+      echo "Error: Plugin '$plugin_name' not found (no local files or marketplace entry)"
+      exit 1
+    fi
+  fi
+
+  deploy "feat: remove ${skill_name:-$plugin_name}" "${stage_paths[@]}"
+  echo "→ Done!"
+}
+
+# ── Command: completions ──────────────────────────────────────────────────────
+
+cmd_completions() {
+  local shell="${1:-}"
+  local completions_dir="$BIN_DIR/completions"
+
+  if [[ "$shell" == "--help" || "$shell" == "-h" ]]; then
+    cat <<EOF
+Usage: mkt completions [bash|zsh]
+
+Print shell completion setup instructions.
+Without arguments, auto-detects the current shell.
+EOF
+    exit 0
+  fi
+
+  # Auto-detect shell
+  if [[ -z "$shell" ]]; then
+    case "${SHELL##*/}" in
+      zsh)  shell="zsh" ;;
+      bash) shell="bash" ;;
+      *)    echo "Error: Cannot detect shell. Specify 'bash' or 'zsh'."; exit 1 ;;
+    esac
+  fi
+
+  case "$shell" in
+    zsh)
+      cat <<EOF
+# Add to your .zshrc:
+fpath=($completions_dir \$fpath)
+autoload -Uz compinit && compinit
+EOF
+      ;;
+    bash)
+      cat <<EOF
+# Add to your .bashrc:
+source $completions_dir/mkt.bash
+EOF
+      ;;
+    *)
+      echo "Error: Unsupported shell '$shell'. Use 'bash' or 'zsh'."
+      exit 1
+      ;;
+  esac
+}
+
+# ── Dispatch ──────────────────────────────────────────────────────────────────
+
+[[ $# -lt 1 ]] && usage
+
+command="$1"
+shift
+
+case "$command" in
+  add)         cmd_add "$@" ;;
+  remove)      cmd_remove "$@" ;;
+  update)      cmd_update "$@" ;;
+  completions) cmd_completions "$@" ;;
+  --help|-h)   usage ;;
+  *)           echo "Error: Unknown command '$command'"; usage ;;
+esac
