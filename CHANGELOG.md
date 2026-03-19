@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: skills v2] - 2026-03-19
+
+### Changed
+- feat: add from anthropics/skills
+
+## [Marketplace v32] - 2026-03-19
+
+### Changed
+- feat: add from anthropics/skills
+
 ## [Marketplace v31] - 2026-03-19
 
 ### Changed
