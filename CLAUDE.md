@@ -1,5 +1,15 @@
 # Claude Marketplace
 
+**This is a PUBLIC repository.** Everything committed here is visible to anyone on the internet.
+
+**Before committing any content, confirm with the user** if it contains:
+- Internal infrastructure details (IPs, account IDs, resource names, internal hostnames, file paths from other repos)
+- API keys, tokens, secrets, or credentials of any kind
+- Organization-specific knowledge (internal processes, architecture details, team structure, client information)
+- References to private repositories, internal tools, or non-public systems
+
+When in doubt, ask. A skill prompt that says "read `~/code/nexaedge/infrastructure/cloudflare/zone.tf`" is fine (it's an instruction for the agent at runtime), but embedding the *contents* of that file in a committed skill is not.
+
 This is a Claude Code **plugin marketplace** repository. It contains multiple plugins — both local (in `plugins/`) and external (referenced from GitHub or other sources).
 
 ## Repository Structure
