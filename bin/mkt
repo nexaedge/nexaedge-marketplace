@@ -106,13 +106,6 @@ add_subdir_skill() {
   local plugin_name="${target_plugin:-$skill_name}"
   local plugin_dir="$MARKETPLACE_ROOT/plugins/$plugin_name"
 
-  # Validate --plugin target if specified
-  if [[ -n "$target_plugin" && ! -d "$plugin_dir" ]]; then
-    echo "Error: Target plugin '$target_plugin' does not exist at plugins/$target_plugin/"
-    echo "  Run without --plugin first to create it, then use --plugin to add more skills."
-    return 1
-  fi
-
   echo "→ Vendoring into plugin '$plugin_name'..."
 
   local commit_sha

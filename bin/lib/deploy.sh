@@ -2,33 +2,23 @@
 # Git commit, push, CI wait, and plugin update helpers.
 # Expects MARKETPLACE_ROOT to be set by the caller.
 
-# Wait for any in-flight CI runs to finish, then pull latest.
-sync_with_ci() {
-  cd "$MARKETPLACE_ROOT"
-
+# Wait for any in-flight or queued CI bump runs to finish.
+wait_for_idle_ci() {
   echo "→ Waiting for CI to be idle..."
-  local run_id
-  run_id=$(gh run list --workflow=bump-version.yml --branch=main --limit=1 \
-    --status in_progress --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)
 
-  if [[ -n "$run_id" ]]; then
-    gh run watch "$run_id" --exit-status || echo "⚠ CI run failed or was skipped"
-  fi
+  for status in in_progress queued; do
+    local run_id
+    run_id=$(gh run list --workflow=bump-version.yml --branch=main --limit=1 \
+      --status "$status" --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)
 
-  # Also check for queued runs
-  run_id=$(gh run list --workflow=bump-version.yml --branch=main --limit=1 \
-    --status queued --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)
-
-  if [[ -n "$run_id" ]]; then
-    gh run watch "$run_id" --exit-status || echo "⚠ CI run failed or was skipped"
-  fi
-
-  echo "→ Pulling latest..."
-  git pull --rebase
+    if [[ -n "$run_id" ]]; then
+      gh run watch "$run_id" --exit-status || echo "⚠ CI run failed or was skipped"
+    fi
+  done
 }
 
-# Stage files, commit, and push to main.
-commit_and_push() {
+# Stage and commit locally (does not push).
+commit_local() {
   local message="$1"
   shift
   local files=("$@")
@@ -40,9 +30,6 @@ commit_and_push() {
   done
 
   git commit -m "$message"
-
-  echo "→ Pushing to main..."
-  git push
 }
 
 # Wait for the bump-version CI workflow triggered by our push.
@@ -68,14 +55,26 @@ update_local_plugin() {
   claude plugin update nexaedge-marketplace 2>/dev/null || true
 }
 
-# Full deploy pipeline: sync, commit, push, wait for bump, update local.
+# Full deploy pipeline:
+#   1. Stage + commit locally
+#   2. Wait for any in-flight CI to finish
+#   3. Rebase on top of latest remote + push
+#   4. Wait for our push's CI bump
+#   5. Update local plugin
 deploy() {
   local message="$1"
   shift
   local files=("$@")
 
-  sync_with_ci
-  commit_and_push "$message" "${files[@]}"
+  commit_local "$message" "${files[@]}"
+  wait_for_idle_ci
+
+  echo "→ Pulling latest..."
+  git pull --rebase
+
+  echo "→ Pushing to main..."
+  git push
+
   wait_for_bump
   update_local_plugin
 }
