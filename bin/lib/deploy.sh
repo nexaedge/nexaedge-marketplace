@@ -79,16 +79,13 @@ get_plugin_version() {
   fi
 }
 
-# Update the locally installed marketplace plugin and report status.
-update_local_plugin() {
-  echo "→ Updating local installation..."
-  local output
-  output=$(claude plugin update nexaedge-marketplace 2>&1 || true)
-
-  if echo "$output" | grep -qi "updated\|installed\|up to date"; then
-    echo "  ✓ Local plugin updated"
+# Update the local marketplace cache.
+update_local_marketplace() {
+  echo "→ Updating local marketplace cache..."
+  if claude plugin marketplace update nexaedge-marketplace &>/dev/null; then
+    echo "  ✓ Marketplace cache updated"
   else
-    echo "  ✓ Local plugin refreshed"
+    echo "  ⚠ Failed to update marketplace cache"
   fi
 }
 
@@ -189,7 +186,7 @@ deploy() {
   git push
 
   wait_for_bump
-  update_local_plugin
+  update_local_marketplace
 
   local version_after
   version_after=$(get_marketplace_version)
@@ -219,8 +216,6 @@ deploy() {
     echo ""
     read -rp "Install '$pname' at user level? [y/N] " answer
     if [[ "$answer" =~ ^[Yy]$ ]]; then
-      # Ensure marketplace is up to date before installing
-      claude plugin update nexaedge-marketplace &>/dev/null || true
       claude plugin install "${pname}@nexaedge-marketplace" --scope user
     fi
   done
