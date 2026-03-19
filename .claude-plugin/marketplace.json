@@ -2,7 +2,7 @@
   "name": "nexaedge-marketplace",
   "metadata": {
     "description": "Jaison Erick's Claude Code plugin marketplace.",
-    "version": "v12",
+    "version": "v13",
     "pluginRoot": "./plugins"
   },
   "owner": {
