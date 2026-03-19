@@ -1,9 +1,0 @@
-{
-  "name": "vendored-skills",
-  "version": "v3",
-  "description": "Vendored skills from external repositories",
-  "author": {
-    "name": "Anthropic",
-    "url": "https://github.com/anthropics"
-  }
-}
