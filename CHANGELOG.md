@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Marketplace v9] - 2026-03-19
+
+### Changed
+- feat: remove seo
+
 ## [Marketplace v8] - 2026-03-19
 
 ### Changed
