@@ -13,6 +13,16 @@ Versions are bumped automatically by CI on merge to main.
 ### Changed
 - feat: add plugin(s) from coreyhaines31/marketingskills
 
+## [Marketplace v14] - 2026-03-19
+
+### Changed
+- feat: add plugin(s) from coreyhaines31/marketingskills
+
+## [Plugin: seo v2] - 2026-03-19
+
+### Changed
+- feat: add plugin(s) from coreyhaines31/marketingskills
+
 ## [Marketplace v13] - 2026-03-19
 
 ### Changed
