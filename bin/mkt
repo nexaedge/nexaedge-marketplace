@@ -16,8 +16,9 @@ usage() {
 Usage: mkt <command> [options]
 
 Commands:
-  add          Add skills from a GitHub URL
-  remove       Remove a plugin or a skill from a plugin
+  add          Add a plugin or skill from a GitHub URL
+  list         List installed plugins and skills
+  remove       Remove plugins or skills (interactive picker)
   update       Check vendored skills for upstream updates
   completions  Output shell completion setup instructions
 
@@ -177,7 +178,7 @@ pick_and_vendor_skills() {
   # Strip markers from selection
   local -a selected_skills=()
   for item in "${selected_raw[@]}"; do
-    selected_skills+=("$(echo "$item" | sed 's/^[✓ ]* //')")
+    selected_skills+=("$(echo "$item" | sed 's/^[✔✓ ]*//')")
   done
 
   echo ""
@@ -579,57 +580,192 @@ check_and_update_skill() {
   return 0
 }
 
+# ── Command: list ──────────────────────────────────────────────────────────────
+
+# Get locally enabled plugin names.
+get_enabled_plugins() {
+  claude plugin list 2>/dev/null | grep -o '[^ ]*@nexaedge-marketplace' | sed 's/@nexaedge-marketplace//'
+}
+
+is_enabled() {
+  local name="$1"
+  echo "$ENABLED_PLUGINS" | grep -qx "$name"
+}
+
+# Collect all plugins and skills into display lines.
+# Prefixes enabled plugins with ✔. Format:
+#   "✔ plugin/skill" or "  plugin/skill" for vendored
+#   "✔ plugin (external)" or "  plugin (external)" for references
+collect_installed_items() {
+  ENABLED_PLUGINS=$(get_enabled_plugins)
+  local -a items=()
+
+  # Vendored plugins (only those with at least one .upstream.json)
+  for plugin_dir in "$MARKETPLACE_ROOT"/plugins/*/; do
+    [[ -d "$plugin_dir" ]] || continue
+    local pname
+    pname=$(basename "$plugin_dir")
+
+    # Skip authored plugins (no .upstream.json anywhere)
+    find "$plugin_dir" -name '.upstream.json' -print -quit 2>/dev/null | grep -q . || continue
+
+    local marker="  "
+    is_enabled "$pname" && marker="✔ "
+
+    local skills_dir="$plugin_dir/skills"
+    if [[ -d "$skills_dir" ]]; then
+      for skill_dir in "$skills_dir"/*/; do
+        [[ -d "$skill_dir" ]] || continue
+        local sname
+        sname=$(basename "$skill_dir")
+        items+=("${marker}$pname/$sname (vendored)")
+      done
+    fi
+  done
+
+  # External plugins from marketplace.json (non-local sources)
+  while IFS= read -r pname; do
+    [[ -z "$pname" ]] && continue
+    local psource
+    psource=$(jq -r --arg n "$pname" '.plugins[] | select(.name == $n) | .source | if type == "object" then .source else "local" end' "$MARKETPLACE_JSON")
+    if [[ "$psource" != "local" ]]; then
+      local marker="  "
+      is_enabled "$pname" && marker="✔ "
+      items+=("${marker}$pname (external)")
+    fi
+  done <<< "$(jq -r '.plugins[].name' "$MARKETPLACE_JSON")"
+
+  printf '%s\n' "${items[@]}"
+}
+
+cmd_list() {
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    cat <<EOF
+Usage: mkt list
+
+List all installed plugins and vendored skills.
+EOF
+    exit 0
+  fi
+
+  echo "→ Installed plugins and skills:"
+  echo ""
+
+  local current_plugin=""
+
+  while IFS= read -r item; do
+    [[ -z "$item" ]] && continue
+
+    # Strip marker for parsing, keep for display
+    local marker="${item:0:2}"
+    local content="${item:2}"
+
+    if [[ "$content" == *" (external)" ]]; then
+      echo "  ${item}"
+    elif [[ "$content" == */* ]]; then
+      local stripped="${content% (vendored)}"
+      local pname="${stripped%%/*}"
+      local sname="${stripped#*/}"
+
+      if [[ "$pname" != "$current_plugin" ]]; then
+        [[ -n "$current_plugin" ]] && echo ""
+        local version
+        version=$(jq -r '.version // "?"' "$MARKETPLACE_ROOT/plugins/$pname/.claude-plugin/plugin.json" 2>/dev/null || echo "?")
+        echo "  ${marker}$pname $version (vendored)"
+        current_plugin="$pname"
+      fi
+
+      echo "      $sname"
+    fi
+  done <<< "$(collect_installed_items | sort)"
+  echo ""
+}
+
 # ── Command: remove ────────────────────────────────────────────────────────────
 
 cmd_remove() {
-  [[ $# -lt 1 || "$1" == "--help" || "$1" == "-h" ]] && usage_remove
+  [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]] && usage_remove
 
-  local target="$1"
-  local plugin_name=""
-  local skill_name=""
+  local -a targets=()
 
-  if [[ "$target" == */* ]]; then
-    plugin_name="${target%%/*}"
-    skill_name="${target#*/}"
+  if [[ $# -ge 1 ]]; then
+    # Direct argument
+    targets+=("$1")
   else
-    plugin_name="$target"
-  fi
+    # Interactive picker
+    local -a items=()
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && items+=("$line")
+    done <<< "$(collect_installed_items)"
 
-  local stage_paths=()
-  REMOVED_PLUGIN=""
-
-  if [[ -n "$skill_name" ]]; then
-    echo "→ Removing skill '$skill_name' from plugin '$plugin_name'..."
-    remove_local_skill "$plugin_name" "$skill_name"
-    stage_paths+=("plugins/")
-    [[ -n "$REMOVED_PLUGIN" ]] && stage_paths+=(".claude-plugin/marketplace.json")
-  else
-    echo "→ Removing plugin '$plugin_name'..."
-
-    if is_local_plugin "$plugin_name"; then
-      remove_local_plugin "$plugin_name"
-      stage_paths+=("plugins/$plugin_name")
+    if [[ ${#items[@]} -eq 0 ]]; then
+      echo "→ Nothing installed."
+      exit 0
     fi
 
-    if plugin_exists "$plugin_name"; then
-      remove_plugin_entry "$plugin_name"
-      stage_paths+=(".claude-plugin/marketplace.json")
-    fi
+    while IFS= read -r line; do
+      # Strip marker, labels, and whitespace
+      line="${line% (external)}"
+      line="${line% (vendored)}"
+      line=$(echo "$line" | sed 's/^[✔ ]*//')
+      [[ -n "$line" ]] && targets+=("$line")
+    done < <(fzf_multi_pick "Select items to remove (TAB to toggle, ENTER to confirm)" "${items[@]}" || true)
 
-    if [[ ${#stage_paths[@]} -eq 0 ]]; then
-      echo "Error: Plugin '$plugin_name' not found (no local files or marketplace entry)"
-      exit 1
-    fi
+    [[ ${#targets[@]} -eq 0 ]] && exit 0
   fi
 
-  local change_entry
-  if [[ -n "$skill_name" ]]; then
-    change_entry="-$plugin_name/$skill_name"
-  else
-    change_entry="-$plugin_name"
-  fi
+  # Process all removals, collecting stage paths and change entries
+  local -a stage_paths=()
+  local -a deploy_changes=()
+  local has_plugin_changes=0
+  local has_local_changes=0
 
-  deploy "feat: remove ${skill_name:-$plugin_name}" "${stage_paths[@]}" "--" "$change_entry"
+  for target in "${targets[@]}"; do
+    local plugin_name=""
+    local skill_name=""
+
+    if [[ "$target" == */* ]]; then
+      plugin_name="${target%%/*}"
+      skill_name="${target#*/}"
+    else
+      plugin_name="$target"
+    fi
+
+    REMOVED_PLUGIN=""
+
+    if [[ -n "$skill_name" ]]; then
+      echo "→ Removing skill '$skill_name' from plugin '$plugin_name'..."
+      remove_local_skill "$plugin_name" "$skill_name"
+      has_local_changes=1
+      [[ -n "$REMOVED_PLUGIN" ]] && has_plugin_changes=1
+      deploy_changes+=("-$plugin_name/$skill_name")
+    else
+      echo "→ Removing plugin '$plugin_name'..."
+
+      if is_local_plugin "$plugin_name"; then
+        remove_local_plugin "$plugin_name"
+        has_local_changes=1
+      fi
+
+      if plugin_exists "$plugin_name"; then
+        remove_plugin_entry "$plugin_name"
+        has_plugin_changes=1
+      fi
+
+      deploy_changes+=("-$plugin_name")
+    fi
+  done
+
+  [[ ${#deploy_changes[@]} -eq 0 ]] && { echo "→ Nothing to remove."; exit 0; }
+
+  [[ $has_local_changes -eq 1 ]] && stage_paths+=("plugins/")
+  [[ $has_plugin_changes -eq 1 ]] && stage_paths+=(".claude-plugin/marketplace.json")
+
+  local names
+  names=$(printf '%s\n' "${targets[@]}" | head -3 | tr '\n' ', ' | sed 's/,$//')
+  [[ ${#targets[@]} -gt 3 ]] && names="$names, ..."
+
+  deploy "feat: remove $names" "${stage_paths[@]}" "--" "${deploy_changes[@]}"
 }
 
 # ── Command: completions ──────────────────────────────────────────────────────
@@ -686,7 +822,8 @@ shift
 
 case "$command" in
   add)         cmd_add "$@" ;;
-  remove)      cmd_remove "$@" ;;
+  list|ls)     cmd_list "$@" ;;
+  remove|rm)   cmd_remove "$@" ;;
   update)      cmd_update "$@" ;;
   completions) cmd_completions "$@" ;;
   --help|-h)   usage ;;

@@ -68,20 +68,12 @@
       }
     },
     {
-      "name": "seo",
-      "source": "./plugins/seo"
-    },
-    {
       "name": "marketing-skills",
       "source": {
         "source": "git-subdir",
         "url": "coreyhaines31/marketingskills",
         "path": ""
       }
-    },
-    {
-      "name": "marketingskills",
-      "source": "./plugins/marketingskills"
     }
   ]
 }
