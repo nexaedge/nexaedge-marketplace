@@ -12,7 +12,7 @@ _gh_contents_url() {
 gh_file_exists() {
   local url
   url=$(_gh_contents_url "$@")
-  gh api "$url" --jq '.name' &>/dev/null
+  gh api "$url" --jq 'if type == "array" then .[0].name else .name end' &>/dev/null
 }
 
 gh_file_content() {

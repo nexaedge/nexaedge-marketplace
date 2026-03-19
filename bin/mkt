@@ -16,12 +16,36 @@ usage() {
 Usage: mkt <command> [options]
 
 Commands:
-  add          Add a plugin or skill from a GitHub URL
+  add          Add skills from a GitHub URL
   remove       Remove a plugin or a skill from a plugin
   update       Check vendored skills for upstream updates
   completions  Output shell completion setup instructions
 
 Run 'mkt <command> --help' for command-specific usage.
+EOF
+  exit 1
+}
+
+usage_add() {
+  cat <<EOF
+Usage: mkt add [--plugin <name>] <github-url>
+
+Add a plugin or skills from a GitHub URL.
+
+Options:
+  --plugin <name>   Name of the local plugin to vendor skills into.
+                    Defaults to the repository name.
+
+Behavior depends on what the URL points to:
+  - A single skill (has SKILL.md) → vendors directly
+  - A plugin with skills → asks: reference the whole plugin, or vendor skills
+  - A plugin without skills → references the plugin
+  - A skills collection → shows picker to vendor individual skills
+
+Examples:
+  mkt add https://github.com/owner/repo/tree/main/skills/seo-audit
+  mkt add https://github.com/owner/repo --plugin marketing
+  mkt add https://github.com/owner/repo
 EOF
   exit 1
 }
@@ -44,28 +68,6 @@ EOF
   exit 1
 }
 
-usage_add() {
-  cat <<EOF
-Usage: mkt add [--plugin <name>] <github-url>
-
-Add an external plugin or skill to the marketplace.
-
-Options:
-  --plugin <name>   Vendor a bare skill into an existing local plugin
-                    instead of creating a new one.
-
-URL types:
-  Repo root     https://github.com/owner/repo
-    → plugin.json found:      adds as url source
-    → marketplace.json found: adds all local plugins as git-subdir
-
-  Subdirectory  https://github.com/owner/repo/tree/branch/path
-    → plugin.json found:      adds as git-subdir source
-    → SKILL.md found:         vendors as a local plugin skill
-EOF
-  exit 1
-}
-
 usage_update() {
   cat <<EOF
 Usage: mkt update [--dry-run] [--plugin <name>] [--skill <name>]
@@ -80,46 +82,283 @@ EOF
   exit 1
 }
 
-# ── Add: subdirectory with plugin.json ────────────────────────────────────────
+# ── Add: skill discovery ──────────────────────────────────────────────────────
 
-add_subdir_plugin() {
-  echo "→ Found plugin.json at $GH_SUBPATH"
+# Search a remote path for skills. Looks for:
+#   1. SKILL.md directly in the path → single skill
+#   2. skills/ subdirectory → list its children
+#   3. Directories containing SKILL.md → list them
+# Populates: FOUND_SKILL_NAMES and FOUND_SKILL_PATHS arrays.
+discover_skills() {
+  local search_path="$1"  # remote path to search (empty = repo root)
 
-  local plugin_name
-  plugin_name=$(gh_file_content "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH/.claude-plugin/plugin.json" "$GH_REF" | jq -r '.name')
-  echo "→ Plugin name: $plugin_name"
+  FOUND_SKILL_NAMES=()
+  FOUND_SKILL_PATHS=()
 
-  local source_json
-  source_json=$(build_gitsubdir_source "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH" "$GH_REF")
-
-  add_plugin_entry "$plugin_name" "$source_json" && return 0 || return 1
-}
-
-# ── Add: subdirectory with bare SKILL.md ──────────────────────────────────────
-
-add_subdir_skill() {
-  local skill_name="$1"
-  local target_plugin="$2"
-
-  local plugin_name="${target_plugin:-$skill_name}"
-  local skill_dir="$MARKETPLACE_ROOT/plugins/$plugin_name/skills/$skill_name"
-
-  # Check early before any API calls
-  if [[ -d "$skill_dir" ]]; then
-    echo "→ Skill '$skill_name' already exists in plugin '$plugin_name', nothing to do."
-    exit 0
+  # 1. Direct skill
+  if [[ -n "$search_path" ]] && gh_file_exists "$GH_OWNER" "$GH_REPO" "$search_path/SKILL.md" "$GH_REF"; then
+    FOUND_SKILL_NAMES+=("$(basename "$search_path")")
+    FOUND_SKILL_PATHS+=("$search_path")
+    return 0
   fi
 
-  echo "→ Found bare skill '$skill_name' (no plugin wrapper)"
-  echo "→ Vendoring into plugin '$plugin_name'..."
+  # 2. skills/ subdirectory
+  local skills_dir=""
+  if [[ -n "$search_path" ]]; then
+    gh_file_exists "$GH_OWNER" "$GH_REPO" "$search_path/skills" "$GH_REF" && skills_dir="$search_path/skills"
+  else
+    gh_file_exists "$GH_OWNER" "$GH_REPO" "skills" "$GH_REF" && skills_dir="skills"
+  fi
+
+  if [[ -n "$skills_dir" ]]; then
+    while IFS=$'\t' read -r type path name; do
+      [[ "$type" != "dir" ]] && continue
+      FOUND_SKILL_NAMES+=("$name")
+      FOUND_SKILL_PATHS+=("$skills_dir/$name")
+    done < <(gh_list_dir "$GH_OWNER" "$GH_REPO" "$skills_dir" "$GH_REF")
+    [[ ${#FOUND_SKILL_NAMES[@]} -gt 0 ]] && return 0
+  fi
+
+  return 1
+}
+
+# Interactive multi-select picker using fzf.
+# Args: header text, then items (one per arg). Already-installed items prefixed with "✓ ".
+# Returns selected items (without marker) on stdout, one per line.
+fzf_multi_pick() {
+  local header="$1"
+  shift
+  local items=("$@")
+
+  printf '%s\n' "${items[@]}" | fzf --multi \
+    --header "$header" \
+    --prompt "  > " \
+    --bind "ctrl-a:select-all,ctrl-d:deselect-all" \
+    --height 8 \
+    --no-sort \
+    --reverse
+}
+
+# Interactive single-select picker using fzf.
+fzf_single_pick() {
+  local header="$1"
+  shift
+  local items=("$@")
+
+  printf '%s\n' "${items[@]}" | fzf \
+    --header "$header" \
+    --prompt "  > " \
+    --height 5 \
+    --no-sort \
+    --reverse
+}
+
+# Show an interactive picker for skills and vendor the selected ones.
+pick_and_vendor_skills() {
+  local plugin_name="$1"
+
+  # Build display list, marking already-installed skills
+  local -a display_items=()
+  for skill in "${FOUND_SKILL_NAMES[@]}"; do
+    if [[ -d "$MARKETPLACE_ROOT/plugins/$plugin_name/skills/$skill" ]]; then
+      display_items+=("✓ $skill")
+    else
+      display_items+=("  $skill")
+    fi
+  done
+
+  local -a selected_raw=()
+  while IFS= read -r line; do
+    selected_raw+=("$line")
+  done < <(fzf_multi_pick "Select skills to vendor (TAB to toggle, ENTER to confirm)" "${display_items[@]}" || true)
+
+  [[ ${#selected_raw[@]} -eq 0 ]] && { echo "→ No skills selected."; exit 0; }
+
+  # Strip markers from selection
+  local -a selected_skills=()
+  for item in "${selected_raw[@]}"; do
+    selected_skills+=("$(echo "$item" | sed 's/^[✓ ]* //')")
+  done
+
+  echo ""
+  echo "→ Vendoring ${#selected_skills[@]} skill(s) into plugin '$plugin_name'..."
 
   local commit_sha
   commit_sha=$(gh_resolve_sha "$GH_OWNER" "$GH_REPO" "$GH_REF")
   echo "→ Pinned to commit ${commit_sha:0:12}"
 
-  vendor_skill "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH" "$skill_name" "$plugin_name" "$commit_sha"
+  local -a added_skills=()
+  for skill_name in "${selected_skills[@]}"; do
+    # Find the path for this skill name
+    local skill_remote_path=""
+    for ((i=0; i<${#FOUND_SKILL_NAMES[@]}; i++)); do
+      if [[ "${FOUND_SKILL_NAMES[$i]}" == "$skill_name" ]]; then
+        skill_remote_path="${FOUND_SKILL_PATHS[$i]}"
+        break
+      fi
+    done
 
-  # Ensure plugin is registered in marketplace
+    if [[ -d "$MARKETPLACE_ROOT/plugins/$plugin_name/skills/$skill_name" ]]; then
+      echo "  ⚠ '$skill_name' already exists, skipping"
+      continue
+    fi
+
+    if ! gh_file_exists "$GH_OWNER" "$GH_REPO" "$skill_remote_path/SKILL.md" "$commit_sha"; then
+      echo "  ⚠ No SKILL.md in $skill_name, skipping"
+      continue
+    fi
+
+    vendor_skill "$GH_OWNER" "$GH_REPO" "$skill_remote_path" "$skill_name" "$plugin_name" "$commit_sha"
+    added_skills+=("$skill_name")
+  done
+
+  [[ ${#added_skills[@]} -eq 0 ]] && { echo "→ No new skills added."; exit 0; }
+
+  if ! plugin_exists "$plugin_name"; then
+    add_plugin_entry "$plugin_name" "\"./plugins/$plugin_name\""
+  fi
+
+  ADDED_PLUGIN="$plugin_name"
+  ADDED_SKILL="${added_skills[*]}"
+}
+
+# ── Add: helpers ──────────────────────────────────────────────────────────────
+
+ask_reference_or_vendor() {
+  local choice
+  choice=$(fzf_single_pick "How do you want to add this?" \
+    "Reference — full plugin (skills, agents, hooks, MCP)" \
+    "Vendor    — cherry-pick individual skills to copy locally" \
+    || true)
+
+  case "$choice" in
+    Reference*) echo "reference" ;;
+    Vendor*)    echo "vendor" ;;
+    *)          echo "cancelled" ;;
+  esac
+}
+
+# Reference a single plugin. For repo root: url source. For subdir: git-subdir.
+add_as_reference() {
+  local plugin_path="$1"  # remote path (empty for repo root)
+
+  local plugin_name=""
+  local source_json=""
+
+  if [[ -z "$plugin_path" ]]; then
+    plugin_name=$(gh_file_content "$GH_OWNER" "$GH_REPO" ".claude-plugin/plugin.json" "$GH_REF" | jq -r '.name')
+    source_json=$(jq -n --arg url "https://github.com/$GH_OWNER/$GH_REPO.git" '{source: "url", url: $url}')
+  else
+    plugin_name=$(gh_file_content "$GH_OWNER" "$GH_REPO" "$plugin_path/.claude-plugin/plugin.json" "$GH_REF" | jq -r '.name')
+    source_json=$(build_gitsubdir_source "$GH_OWNER" "$GH_REPO" "$plugin_path" "$GH_REF")
+  fi
+
+  echo "→ Adding plugin '$plugin_name' as reference..."
+  add_plugin_entry "$plugin_name" "$source_json"
+  ADDED_PLUGIN="$plugin_name"
+}
+
+# Reference plugins from a remote marketplace.json. Shows picker if multiple.
+add_marketplace_plugins_as_reference() {
+  local mkt_path="${GH_SUBPATH:+$GH_SUBPATH/}.claude-plugin/marketplace.json"
+  local content
+  content=$(gh_file_content "$GH_OWNER" "$GH_REPO" "$mkt_path" "$GH_REF")
+
+  local plugin_root
+  plugin_root=$(echo "$content" | jq -r '.metadata.pluginRoot // "."')
+  plugin_root="${plugin_root#./}"
+
+  # Collect local plugins from the remote marketplace
+  local -a plugin_names=()
+  local -a plugin_paths=()
+  while IFS= read -r pname; do
+    [[ -z "$pname" ]] && continue
+    local psource
+    psource=$(echo "$content" | jq -r --arg n "$pname" '.plugins[] | select(.name == $n) | .source')
+    # Only handle local sources (string starting with ./)
+    [[ "$psource" != ./* ]] && continue
+    local ppath="${psource#./}"
+    [[ -n "$plugin_root" && "$plugin_root" != "." ]] && ppath="$plugin_root/$ppath"
+    [[ -n "$GH_SUBPATH" ]] && ppath="$GH_SUBPATH/$ppath"
+    plugin_names+=("$pname")
+    plugin_paths+=("$ppath")
+  done <<< "$(echo "$content" | jq -r '.plugins[].name')"
+
+  if [[ ${#plugin_names[@]} -eq 0 ]]; then
+    echo "  No local plugins found in marketplace"
+    exit 1
+  fi
+
+  if [[ ${#plugin_names[@]} -eq 1 ]]; then
+    # Single plugin — add directly
+    local pname="${plugin_names[0]}"
+    local ppath="${plugin_paths[0]}"
+    echo "→ Found plugin '$pname'"
+    local source_json
+    source_json=$(build_gitsubdir_source "$GH_OWNER" "$GH_REPO" "$ppath" "$GH_REF")
+    add_plugin_entry "$pname" "$source_json"
+    ADDED_PLUGIN="$pname"
+    return
+  fi
+
+  # Multiple — fzf picker
+  local -a display_items=()
+  for pname in "${plugin_names[@]}"; do
+    if plugin_exists "$pname"; then
+      display_items+=("✓ $pname")
+    else
+      display_items+=("  $pname")
+    fi
+  done
+
+  local -a selected_raw=()
+  while IFS= read -r line; do
+    selected_raw+=("$line")
+  done < <(fzf_multi_pick "Select plugins to reference (TAB to toggle, ENTER to confirm)" "${display_items[@]}" || true)
+
+  [[ ${#selected_raw[@]} -eq 0 ]] && { echo "→ No plugins selected."; exit 0; }
+
+  for item in "${selected_raw[@]}"; do
+    local pname
+    pname=$(echo "$item" | sed 's/^[✓ ]* //')
+
+    # Find path for this plugin name
+    local ppath=""
+    for ((i=0; i<${#plugin_names[@]}; i++)); do
+      if [[ "${plugin_names[$i]}" == "$pname" ]]; then
+        ppath="${plugin_paths[$i]}"
+        break
+      fi
+    done
+
+    local source_json
+    source_json=$(build_gitsubdir_source "$GH_OWNER" "$GH_REPO" "$ppath" "$GH_REF")
+    add_plugin_entry "$pname" "$source_json"
+  done
+
+  # Use first selected as ADDED_PLUGIN for deploy summary
+  ADDED_PLUGIN="${plugin_names[${selected_indices[0]}]}"
+}
+
+# Vendor a single skill directly (no picker).
+vendor_single_skill() {
+  local skill_path="$1"
+  local skill_name="$2"
+  local plugin_name="$3"
+
+  if [[ -d "$MARKETPLACE_ROOT/plugins/$plugin_name/skills/$skill_name" ]]; then
+    echo "→ Skill '$skill_name' already exists in plugin '$plugin_name', nothing to do."
+    exit 0
+  fi
+
+  echo "→ Vendoring skill '$skill_name' into plugin '$plugin_name'..."
+
+  local commit_sha
+  commit_sha=$(gh_resolve_sha "$GH_OWNER" "$GH_REPO" "$GH_REF")
+  echo "→ Pinned to commit ${commit_sha:0:12}"
+
+  vendor_skill "$GH_OWNER" "$GH_REPO" "$skill_path" "$skill_name" "$plugin_name" "$commit_sha"
+
   if ! plugin_exists "$plugin_name"; then
     add_plugin_entry "$plugin_name" "\"./plugins/$plugin_name\""
   fi
@@ -128,110 +367,17 @@ add_subdir_skill() {
   ADDED_SKILL="$skill_name"
 }
 
-# ── Add: repo root with marketplace.json ──────────────────────────────────────
+# Vendor discovered skills — single goes direct, multiple shows picker.
+vendor_discovered_skills() {
+  local plugin_name="$1"
 
-add_repo_marketplace() {
-  echo "→ Found marketplace.json — discovering plugins..."
+  echo "→ Found ${#FOUND_SKILL_NAMES[@]} skill(s)"
 
-  local content
-  content=$(gh_file_content "$GH_OWNER" "$GH_REPO" ".claude-plugin/marketplace.json" "$GH_REF")
-
-  local plugin_root
-  plugin_root=$(echo "$content" | jq -r '.metadata.pluginRoot // "."')
-  plugin_root="${plugin_root#./}"
-
-  local added=0
-
-  while IFS= read -r plugin_name; do
-    [[ -z "$plugin_name" ]] && continue
-
-    local plugin_source
-    plugin_source=$(echo "$content" | jq -r --arg n "$plugin_name" \
-      '.plugins[] | select(.name == $n) | .source')
-
-    if [[ "$plugin_source" != ./* ]]; then
-      echo "  → Skipping '$plugin_name' (external source)"
-      continue
-    fi
-
-    local plugin_path="${plugin_source#./}"
-    local full_path
-    [[ -n "$plugin_root" && "$plugin_root" != "." ]] \
-      && full_path="$plugin_root/$plugin_path" \
-      || full_path="$plugin_path"
-
-    echo "  → Found local plugin '$plugin_name' at $full_path"
-
-    local source_json
-    source_json=$(build_gitsubdir_source "$GH_OWNER" "$GH_REPO" "$full_path" "$GH_REF")
-
-    if add_plugin_entry "$plugin_name" "$source_json"; then
-      added=$((added + 1))
-    fi
-  done <<< "$(echo "$content" | jq -r '.plugins[].name')"
-
-  return $((added == 0))
-}
-
-# ── Add: repo root with plugin.json ──────────────────────────────────────────
-
-add_repo_plugin() {
-  echo "→ Found plugin.json — single plugin repo"
-
-  local plugin_name
-  plugin_name=$(gh_file_content "$GH_OWNER" "$GH_REPO" ".claude-plugin/plugin.json" "$GH_REF" | jq -r '.name')
-  echo "→ Plugin name: $plugin_name"
-
-  # Use url source with HTTPS (avoids SSH clone bug)
-  local source_json
-  source_json=$(jq -n --arg url "https://github.com/$GH_OWNER/$GH_REPO.git" \
-    '{source: "url", url: $url}')
-
-  add_plugin_entry "$plugin_name" "$source_json" && return 0 || return 1
-}
-
-# ── Add: detect URL type and dispatch ─────────────────────────────────────────
-
-detect_and_add_subdir() {
-  local target_plugin="$1"
-
-  if gh_file_exists "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH/.claude-plugin/plugin.json" "$GH_REF"; then
-    if [[ -n "$target_plugin" ]]; then
-      echo "Error: --plugin cannot be used with a URL that has plugin.json"
-      exit 1
-    fi
-    add_subdir_plugin
-    return $?
+  if [[ ${#FOUND_SKILL_NAMES[@]} -eq 1 ]]; then
+    vendor_single_skill "${FOUND_SKILL_PATHS[0]}" "${FOUND_SKILL_NAMES[0]}" "$plugin_name"
+  else
+    pick_and_vendor_skills "$plugin_name"
   fi
-
-  if gh_file_exists "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH/SKILL.md" "$GH_REF"; then
-    add_subdir_skill "$(basename "$GH_SUBPATH")" "$target_plugin"
-    return $?
-  fi
-
-  if gh_file_exists "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH/skills" "$GH_REF"; then
-    echo "→ Found skills/ directory at $GH_SUBPATH but no plugin.json"
-    echo "  This looks like a plugin without a manifest. Consider adding it manually."
-    exit 1
-  fi
-
-  echo "Error: No plugin.json or SKILL.md found at $GH_SUBPATH"
-  exit 1
-}
-
-detect_and_add_repo() {
-  if gh_file_exists "$GH_OWNER" "$GH_REPO" ".claude-plugin/marketplace.json" "$GH_REF"; then
-    add_repo_marketplace
-    return $?
-  fi
-
-  if gh_file_exists "$GH_OWNER" "$GH_REPO" ".claude-plugin/plugin.json" "$GH_REF"; then
-    add_repo_plugin
-    return $?
-  fi
-
-  echo "Error: Repository has neither plugin.json nor marketplace.json"
-  exit 1
 }
 
 # ── Command: add ──────────────────────────────────────────────────────────────
@@ -254,18 +400,43 @@ cmd_add() {
   parse_github_url "$url"
   echo "→ Parsed: owner=$GH_OWNER repo=$GH_REPO ref=${GH_REF:-default} path=${GH_SUBPATH:-root}"
 
-  # Set by add functions when a local plugin/skill is created
   ADDED_PLUGIN=""
   ADDED_SKILL=""
 
-  if [[ -n "$GH_SUBPATH" ]]; then
-    detect_and_add_subdir "$target_plugin"
-  else
-    if [[ -n "$target_plugin" ]]; then
-      echo "Error: --plugin can only be used with subdirectory URLs pointing to bare skills"
-      exit 1
+  # Direct skill URL — vendor it, no questions
+  if [[ -n "$GH_SUBPATH" ]] && gh_file_exists "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH/SKILL.md" "$GH_REF"; then
+    vendor_single_skill "$GH_SUBPATH" "$(basename "$GH_SUBPATH")" "${target_plugin:-$GH_REPO}"
+
+  # Has marketplace.json — ask reference or vendor
+  elif gh_file_exists "$GH_OWNER" "$GH_REPO" "${GH_SUBPATH:+$GH_SUBPATH/}.claude-plugin/marketplace.json" "$GH_REF"; then
+    local mode
+    mode=$(ask_reference_or_vendor)
+    [[ "$mode" == "cancelled" ]] && exit 0
+
+    if [[ "$mode" == "reference" ]]; then
+      add_marketplace_plugins_as_reference
+    else
+      discover_skills "$GH_SUBPATH" || { echo "Error: No skills found"; exit 1; }
+      vendor_discovered_skills "${target_plugin:-$GH_REPO}"
     fi
-    detect_and_add_repo
+
+  # Has plugin.json — ask reference or vendor
+  elif gh_file_exists "$GH_OWNER" "$GH_REPO" "${GH_SUBPATH:+$GH_SUBPATH/}.claude-plugin/plugin.json" "$GH_REF"; then
+    local mode
+    mode=$(ask_reference_or_vendor)
+    [[ "$mode" == "cancelled" ]] && exit 0
+
+    if [[ "$mode" == "reference" ]]; then
+      add_as_reference "$GH_SUBPATH"
+    else
+      discover_skills "$GH_SUBPATH" || { echo "Error: No skills found"; exit 1; }
+      vendor_discovered_skills "${target_plugin:-$GH_REPO}"
+    fi
+
+  # No manifest — look for skills directly
+  else
+    discover_skills "$GH_SUBPATH" || { echo "Error: No skills or plugin found at this URL"; exit 1; }
+    vendor_discovered_skills "${target_plugin:-$GH_REPO}"
   fi
 
   # Deploy
@@ -273,15 +444,19 @@ cmd_add() {
   local -a deploy_changes=()
 
   if [[ -n "$ADDED_PLUGIN" ]]; then
-    stage_paths+=("plugins/")
     if [[ -n "$ADDED_SKILL" ]]; then
-      deploy_changes+=("+$ADDED_PLUGIN/$ADDED_SKILL")
+      stage_paths+=("plugins/")
+      for skill in $ADDED_SKILL; do
+        deploy_changes+=("+$ADDED_PLUGIN/$skill")
+      done
     else
       deploy_changes+=("+$ADDED_PLUGIN")
     fi
   fi
 
-  deploy "feat: add plugin(s) from $GH_OWNER/$GH_REPO" "${stage_paths[@]}" "--" "${deploy_changes[@]}"
+  [[ ${#deploy_changes[@]} -eq 0 ]] && { echo "→ Nothing to deploy."; exit 0; }
+
+  deploy "feat: add from $GH_OWNER/$GH_REPO" "${stage_paths[@]}" "--" "${deploy_changes[@]}"
 }
 
 # ── Command: update ───────────────────────────────────────────────────────────
@@ -320,7 +495,6 @@ cmd_update() {
     local skill_name
     skill_name="$(basename "$(dirname "$upstream_file")")"
 
-    # Apply filters
     [[ -n "$filter_plugin" && "$plugin_name" != "$filter_plugin" ]] && continue
     [[ -n "$filter_skill" && "$skill_name" != "$filter_skill" ]] && continue
 
@@ -425,13 +599,11 @@ cmd_remove() {
   REMOVED_PLUGIN=""
 
   if [[ -n "$skill_name" ]]; then
-    # Remove a single skill
     echo "→ Removing skill '$skill_name' from plugin '$plugin_name'..."
     remove_local_skill "$plugin_name" "$skill_name"
     stage_paths+=("plugins/")
     [[ -n "$REMOVED_PLUGIN" ]] && stage_paths+=(".claude-plugin/marketplace.json")
   else
-    # Remove entire plugin
     echo "→ Removing plugin '$plugin_name'..."
 
     if is_local_plugin "$plugin_name"; then
@@ -476,7 +648,6 @@ EOF
     exit 0
   fi
 
-  # Auto-detect shell
   if [[ -z "$shell" ]]; then
     case "${SHELL##*/}" in
       zsh)  shell="zsh" ;;

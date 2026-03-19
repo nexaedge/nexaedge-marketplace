@@ -6,16 +6,20 @@
 # --- URL parsing ---
 
 # Parse a GitHub URL into components. Sets: GH_OWNER, GH_REPO, GH_REF, GH_SUBPATH.
+# Supports:
+#   https://github.com/owner/repo
+#   https://github.com/owner/repo/tree/branch
+#   https://github.com/owner/repo/tree/branch/path
 parse_github_url() {
   local url="${1%/}"  # strip trailing slash
 
-  if [[ "$url" =~ ^https://github\.com/([^/]+)/([^/]+)(/tree/([^/]+)/(.+))?$ ]]; then
+  if [[ "$url" =~ ^https://github\.com/([^/]+)/([^/]+)(/tree/([^/]+)(/(.+))?)?$ ]]; then
     GH_OWNER="${BASH_REMATCH[1]}"
     GH_REPO="${BASH_REMATCH[2]%.git}"
     GH_REF="${BASH_REMATCH[4]:-}"
-    GH_SUBPATH="${BASH_REMATCH[5]:-}"
+    GH_SUBPATH="${BASH_REMATCH[6]:-}"
   else
-    echo "Error: URL must be a GitHub URL (https://github.com/owner/repo[/tree/branch/path])"
+    echo "Error: URL must be a GitHub URL (https://github.com/owner/repo[/tree/branch[/path]])"
     return 1
   fi
 }
