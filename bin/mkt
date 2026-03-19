@@ -4,6 +4,7 @@ set -euo pipefail
 BIN_DIR="$(cd "$(dirname "$0")" && pwd)"
 MARKETPLACE_ROOT="$(cd "$BIN_DIR/.." && pwd)"
 MARKETPLACE_JSON="$MARKETPLACE_ROOT/.claude-plugin/marketplace.json"
+VENDORED_PLUGIN="vendored-skills"
 
 source "$BIN_DIR/lib/github.sh"
 source "$BIN_DIR/lib/marketplace.sh"
@@ -29,13 +30,9 @@ EOF
 
 usage_add() {
   cat <<EOF
-Usage: mkt add [--plugin <name>] <github-url>
+Usage: mkt add <github-url|skills.sh-url>
 
-Add a plugin or skills from a GitHub URL.
-
-Options:
-  --plugin <name>   Name of the local plugin to vendor skills into.
-                    Defaults to the repository name.
+Add a plugin or skills from a URL.
 
 Behavior depends on what the URL points to:
   - A single skill (has SKILL.md) → vendors directly
@@ -43,10 +40,12 @@ Behavior depends on what the URL points to:
   - A plugin without skills → references the plugin
   - A skills collection → shows picker to vendor individual skills
 
+Vendored skills are stored in the 'vendored-skills' plugin.
+
 Examples:
   mkt add https://github.com/owner/repo/tree/main/skills/seo-audit
-  mkt add https://github.com/owner/repo --plugin marketing
   mkt add https://github.com/owner/repo
+  mkt add https://skills.sh/owner/repo/skill-name
 EOF
   exit 1
 }
@@ -391,12 +390,10 @@ vendor_discovered_skills() {
 # ── Command: add ──────────────────────────────────────────────────────────────
 
 cmd_add() {
-  local target_plugin=""
   local url=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --plugin)  target_plugin="$2"; shift 2 ;;
       --help|-h) usage_add ;;
       -*)        echo "Error: Unknown option $1"; usage_add ;;
       *)         url="$1"; shift ;;
@@ -413,7 +410,7 @@ cmd_add() {
 
   # Direct skill URL — vendor it, no questions
   if [[ -n "$GH_SUBPATH" ]] && gh_file_exists "$GH_OWNER" "$GH_REPO" "$GH_SUBPATH/SKILL.md" "$GH_REF"; then
-    vendor_single_skill "$GH_SUBPATH" "$(basename "$GH_SUBPATH")" "${target_plugin:-$GH_REPO}"
+    vendor_single_skill "$GH_SUBPATH" "$(basename "$GH_SUBPATH")" "$VENDORED_PLUGIN"
 
   # Has marketplace.json — ask reference or vendor
   elif gh_file_exists "$GH_OWNER" "$GH_REPO" "${GH_SUBPATH:+$GH_SUBPATH/}.claude-plugin/marketplace.json" "$GH_REF"; then
@@ -425,7 +422,7 @@ cmd_add() {
       add_marketplace_plugins_as_reference
     else
       discover_skills "$GH_SUBPATH" || { echo "Error: No skills found"; exit 1; }
-      vendor_discovered_skills "${target_plugin:-$GH_REPO}"
+      vendor_discovered_skills "$VENDORED_PLUGIN"
     fi
 
   # Has plugin.json — ask reference or vendor
@@ -438,13 +435,13 @@ cmd_add() {
       add_as_reference "$GH_SUBPATH"
     else
       discover_skills "$GH_SUBPATH" || { echo "Error: No skills found"; exit 1; }
-      vendor_discovered_skills "${target_plugin:-$GH_REPO}"
+      vendor_discovered_skills "$VENDORED_PLUGIN"
     fi
 
   # No manifest — look for skills directly
   else
     discover_skills "$GH_SUBPATH" || { echo "Error: No skills or plugin found at this URL"; exit 1; }
-    vendor_discovered_skills "${target_plugin:-$GH_REPO}"
+    vendor_discovered_skills "$VENDORED_PLUGIN"
   fi
 
   # Deploy

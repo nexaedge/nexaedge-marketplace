@@ -1,5 +1,5 @@
 {
-  "name": "skills",
+  "name": "vendored-skills",
   "version": "v2",
   "description": "Vendored skills from external repositories",
   "author": {
