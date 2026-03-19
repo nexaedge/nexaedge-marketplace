@@ -24,7 +24,7 @@
       "name": "typescript-lsp",
       "source": {
         "source": "git-subdir",
-        "url": "anthropics/claude-plugins-official",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
         "path": "plugins/typescript-lsp"
       }
     },
@@ -32,7 +32,7 @@
       "name": "pyright-lsp",
       "source": {
         "source": "git-subdir",
-        "url": "anthropics/claude-plugins-official",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
         "path": "plugins/pyright-lsp"
       }
     },
@@ -40,7 +40,7 @@
       "name": "rust-analyzer-lsp",
       "source": {
         "source": "git-subdir",
-        "url": "anthropics/claude-plugins-official",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
         "path": "plugins/rust-analyzer-lsp"
       }
     },
@@ -48,7 +48,7 @@
       "name": "frontend-design",
       "source": {
         "source": "git-subdir",
-        "url": "anthropics/claude-plugins-official",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
         "path": "plugins/frontend-design"
       }
     },
@@ -56,7 +56,7 @@
       "name": "commit-commands",
       "source": {
         "source": "git-subdir",
-        "url": "anthropics/claude-plugins-official",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
         "path": "plugins/commit-commands"
       }
     },

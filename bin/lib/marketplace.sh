@@ -123,7 +123,8 @@ build_gitsubdir_source() {
   local owner="$1" repo="$2" path="$3" ref="${4:-}"
 
   local json
-  json=$(jq -n --arg url "$owner/$repo" --arg path "$path" \
+  local full_url="https://github.com/$owner/$repo.git"
+  json=$(jq -n --arg url "$full_url" --arg path "$path" \
     '{source: "git-subdir", url: $url, path: $path}')
 
   if [[ -n "$ref" ]]; then
