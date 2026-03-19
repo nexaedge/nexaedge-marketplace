@@ -35,11 +35,18 @@ commit_local() {
 # Wait for the bump-version CI workflow triggered by our push.
 wait_for_bump() {
   echo "→ Waiting for CI bump-version workflow..."
-  sleep 3
 
-  local run_id
-  run_id=$(gh run list --workflow=bump-version.yml --branch=main --limit=1 \
-    --json databaseId --jq '.[0].databaseId')
+  # Wait for a new run to appear (in_progress or queued)
+  local run_id=""
+  local attempts=0
+  while [[ -z "$run_id" && $attempts -lt 15 ]]; do
+    sleep 2
+    attempts=$((attempts + 1))
+    run_id=$(gh run list --workflow=bump-version.yml --branch=main --limit=1 \
+      --status in_progress --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)
+    [[ -z "$run_id" ]] && run_id=$(gh run list --workflow=bump-version.yml --branch=main --limit=1 \
+      --status queued --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)
+  done
 
   if [[ -n "$run_id" ]]; then
     if ! gh run watch "$run_id" --exit-status &>/dev/null; then
@@ -47,6 +54,9 @@ wait_for_bump() {
     else
       echo "  ✓ CI bump complete"
     fi
+  else
+    # No new run found — might have been skipped or completed very fast
+    echo "  ✓ CI idle (no new run detected)"
   fi
 
   echo "→ Pulling CI bump commit..."
@@ -209,6 +219,8 @@ deploy() {
     echo ""
     read -rp "Install '$pname' at user level? [y/N] " answer
     if [[ "$answer" =~ ^[Yy]$ ]]; then
+      # Ensure marketplace is up to date before installing
+      claude plugin update nexaedge-marketplace &>/dev/null || true
       claude plugin install "${pname}@nexaedge-marketplace" --scope user
     fi
   done
