@@ -1,0 +1,9 @@
+{
+  "name": "skills",
+  "version": "v1",
+  "description": "Vendored skills from external repositories",
+  "author": {
+    "name": "Anthropic",
+    "url": "https://github.com/anthropics"
+  }
+}
