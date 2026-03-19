@@ -66,13 +66,6 @@
         "source": "url",
         "url": "https://github.com/ChromeDevTools/chrome-devtools-mcp.git"
       }
-    },
-    {
-      "name": "marketing-skills",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/coreyhaines31/marketingskills.git"
-      }
     }
   ]
 }
