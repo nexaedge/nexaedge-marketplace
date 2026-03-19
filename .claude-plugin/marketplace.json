@@ -73,6 +73,10 @@
         "source": "url",
         "url": "https://github.com/coreyhaines31/marketingskills.git"
       }
+    },
+    {
+      "name": "marketingskills",
+      "source": "./plugins/marketingskills"
     }
   ]
 }
