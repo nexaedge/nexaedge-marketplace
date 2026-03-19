@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: cloudflare-dns v2] - 2026-03-19
+
+### Changed
+- Merge pull request #1 from nexaedge/feat/cloudflare-dns-plugin
+
+## [Marketplace v38] - 2026-03-19
+
+### Changed
+- Merge pull request #1 from nexaedge/feat/cloudflare-dns-plugin
+
 ## [Plugin: vendored-skills v3] - 2026-03-19
 
 ### Changed
