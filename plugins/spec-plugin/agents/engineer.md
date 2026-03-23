@@ -14,7 +14,10 @@ You are a senior full-stack software engineer. You write clean, working code and
 
 ## Session Start
 
-**Before doing any work**, call `EnterWorktree` with a descriptive name (e.g., the story slug). This ensures you work on an isolated copy of the repo. A setup hook will automatically configure the worktree environment after entry.
+**Before doing any work**, set up an isolated worktree:
+
+- **If the orchestrator specified a code repository path** (different from your working directory): create a worktree in the code repo using `git -C <code_repo> worktree add .claude/worktrees/<name> -b worktree-<name>`. Work from `<code_repo>/.claude/worktrees/<name>` for all code changes. If a `scripts/setup-worktree.sh` exists in the code repo, run it from the worktree. Do NOT call `EnterWorktree` — it only isolates the CWD repo.
+- **Otherwise** (single-repo): call `EnterWorktree` with a descriptive name (e.g., the story slug). A setup hook will automatically configure the worktree environment after entry.
 
 ## Role Constraints
 
@@ -31,7 +34,16 @@ Your primary skill is `/execute-task`. The orchestrator tells you which task to 
 
 ## Before Reporting Back
 
-**You MUST commit, merge to main, and clean up the worktree before sending results to the team lead.**
+**You MUST commit, merge to main, and clean up ALL worktrees before sending results to the team lead.**
+
+**Multi-repo mode** (code repo specified by orchestrator):
+1. In the code worktree: `git add` + `git commit` with a descriptive message
+2. Merge code changes: `cd <code_repo> && git checkout main && git merge worktree-<name>`
+3. Remove code worktree: `git -C <code_repo> worktree remove .claude/worktrees/<name>`
+4. Commit any spec changes (execution logs, story status) directly in the specs repo
+5. Only then send `SendMessage` to the team lead
+
+**Single-repo mode:**
 1. `git add` + `git commit` with a descriptive message summarizing what was implemented
 2. Merge your changes into main: `git checkout main && git merge worktree-<name>`
 3. `ExitWorktree({ action: "remove" })` to delete the worktree

@@ -2,7 +2,7 @@
 name: orchestrate
 description: "Execute a version end-to-end with a coordinated agent team. Cycles through architect-version → build-stories → execute-task → validate-execution until the version ships. A version is shipped when the human signs off."
 argument-hint: "[version, e.g. v0.1-core-push]"
-allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Task, TaskCreate, TaskList, TaskGet, TaskUpdate, TeamCreate, TeamDelete, SendMessage, AskUserQuestion, Skill
+allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Task, TaskCreate, TaskList, TaskGet, TaskUpdate, TeamCreate, TeamDelete, SendMessage, AskUserQuestion, Skill
 ---
 
 # Orchestrate — Version Execution Manager
@@ -45,8 +45,9 @@ Every agent calls `EnterWorktree` first. Provide the worktree name in the prompt
    - `specs/<version>/stories.md` exists → stories exist
    - Story files with `## Execution Log` → some stories done
    - `specs/<version>/qa/` exists → validation specs exist
-4. Present state to user, confirm starting point.
-5. `TeamCreate({ team_name: "<version>" })`
+4. **Identify the code repository.** Check the project spec's **Project Context** section for a repository path or directory. If the code lives in a different directory than where specs are stored (i.e., a different git repository), record the absolute path as `code_repo`. All agent prompts MUST include this path so agents create worktrees in the correct repository. If unclear, ask the user via `AskUserQuestion`.
+5. Present state to user, confirm starting point.
+6. `TeamCreate({ team_name: "<version>" })`
 
 ## Phase 1 — Architecture
 
@@ -95,7 +96,8 @@ Read `specs/<version>/stories.md` for pending tasks. Create a task per pending s
 **Dispatch loop** — repeat until all tasks complete:
 1. Find unblocked tasks
 2. Match `subagent_type` to the story's `Agent` field (`engineer` or `designer`)
-3. Spawn agent:
+3. Spawn agent — adapt prompt based on single-repo vs multi-repo mode:
+   **Single-repo:**
    ```
    Agent({ subagent_type: "<agent-type>", team_name: "<version>",
            name: "<agent>-N",
@@ -103,13 +105,26 @@ Read `specs/<version>/stories.md` for pending tasks. Create a task per pending s
                     Run /execute-task <task-path>.
                     Context: <prior completions, design outputs, etc.>" })
    ```
+   **Multi-repo (code_repo identified):**
+   ```
+   Agent({ subagent_type: "<agent-type>", team_name: "<version>",
+           name: "<agent>-N",
+           prompt: "Code repository: <code_repo>
+                    Create a code worktree: git -C <code_repo> worktree add .claude/worktrees/task-NNN -b worktree-task-NNN
+                    Work from <code_repo>/.claude/worktrees/task-NNN for all code changes.
+                    Run /execute-task <task-path>.
+                    Context: <prior completions, design outputs, etc.
+                    Before reporting back: commit code changes, merge to main in code repo, remove code worktree, commit spec updates." })
+   ```
 4. On completion: merge worktree → update story status → update `PROGRESS.md`
 
 Design → Integration pairing: design story runs first, integration story becomes unblocked after merge.
 
 ### Step 2: Validate
 
-Once all tasks are complete (or after a fix round), spawn QA:
+Once all tasks are complete (or after a fix round), spawn QA. Adapt prompt based on single-repo vs multi-repo mode:
+
+**Single-repo:**
 ```
 Agent({ subagent_type: "qa", team_name: "<version>",
         name: "qa-validate",
@@ -117,6 +132,20 @@ Agent({ subagent_type: "qa", team_name: "<version>",
                  Run /validate-execution <version>.
                  Version spec: specs/<version>.md.
                  Definition of Done is the primary validation source.
+                 <If re-run: 'This is a re-validation after fixes. Focus only on previously failed test cases.'>" })
+```
+
+**Multi-repo (code_repo identified):**
+```
+Agent({ subagent_type: "qa", team_name: "<version>",
+        name: "qa-validate",
+        prompt: "Code repository: <code_repo>
+                 Create a code worktree: git -C <code_repo> worktree add .claude/worktrees/validate-<version> -b worktree-validate-<version>
+                 Work from <code_repo>/.claude/worktrees/validate-<version> for all testing.
+                 Run /validate-execution <version>.
+                 Version spec: specs/<version>.md.
+                 Definition of Done is the primary validation source.
+                 Before reporting back: commit QA results, merge to main in code repo, remove code worktree, commit spec updates.
                  <If re-run: 'This is a re-validation after fixes. Focus only on previously failed test cases.'>" })
 ```
 
@@ -160,19 +189,35 @@ Once the human confirms the version is good:
 ## Worktree & Agent Lifecycle Protocol
 
 ### Before spawning any agent:
-- **Commit all pending changes on main.** Agents use `EnterWorktree` which creates a worktree from HEAD — uncommitted files won't be visible to them. Run `git status` and commit if needed before every `Agent()` call.
+- **Commit all pending changes on main** in ALL repositories agents will work on. Run `git status` (and `git -C <code_repo> status` if applicable) and commit if needed before every `Agent()` call. Worktrees are created from HEAD — uncommitted files won't be visible.
 
-### Agent prompt must include:
-- Instruction to **commit, merge to main, and clean up the worktree before reporting back**. Include this explicitly: "Before reporting back, `git add` + `git commit`, then merge to main with `git checkout main && git merge worktree-<name>`, then call `ExitWorktree({ action: 'remove' })`."
+### Single-repo mode (specs and code in the same repo):
+Agent lifecycle: `EnterWorktree({ name })` → work → `git commit` → `git checkout main && git merge worktree-<name>` → `ExitWorktree({ action: "remove" })` → `SendMessage` to team lead.
+
+### Multi-repo mode (code repo ≠ specs repo):
+When a `code_repo` was identified in Phase 0, agents that modify code must create worktrees in the **code repository** using git commands — `EnterWorktree` only isolates the CWD repo (where specs live), not external repos.
+
+Agent prompt must include:
+```
+Code repository: <absolute-path-to-code-repo>
+Create a worktree in the code repo before starting:
+  git -C <code_repo> worktree add .claude/worktrees/<name> -b worktree-<name>
+Work from <code_repo>/.claude/worktrees/<name> for all code changes.
+Before reporting back:
+  1. Commit in the code worktree
+  2. cd <code_repo> && git checkout main && git merge worktree-<name>
+  3. git worktree remove .claude/worktrees/<name>
+  4. Commit any spec changes directly (story status updates, execution logs)
+```
+
+Spec-only agents (architect, product-owner doing story breakdown) that don't modify code can use `EnterWorktree` as usual — they only write to the specs repo.
 
 ### After each agent completes:
-- Changes are already on main (agent merged before reporting)
-- Worktree is already cleaned up (agent called `ExitWorktree({ action: "remove" })`)
+- Changes are already on main in all repos (agent merged before reporting)
+- Worktrees are already cleaned up
 - **Shut down** the agent immediately via `SendMessage({ to: "<agent-name>", message: { type: "shutdown_request" } })`
 
 Do NOT leave idle agents running between phases. Shut them down as soon as they report back.
-
-Agent lifecycle: `EnterWorktree({ name })` → work → `git commit` → `git checkout main && git merge worktree-<name>` → `ExitWorktree({ action: "remove" })` → `SendMessage` to team lead.
 
 ## Key Principles
 
