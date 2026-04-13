@@ -95,6 +95,11 @@ Group proposed changes by skill file. For each:
 2. Show the proposed addition/change (as a diff or new section)
 3. Ask the user via `AskUserQuestion` whether to apply
 
+**IMPORTANT: Never edit cached plugin files.** Skills from plugins live in `.claude/plugins/cache/` — these are read-only copies that get overwritten on plugin updates. If a proposed change targets a plugin skill, edit the **source** instead:
+- Check `.claude/plugins/known_marketplaces.json` for the marketplace install location
+- The source is at `<installLocation>/plugins/<plugin-name>/skills/<skill-name>/SKILL.md`
+- If the source is not available locally, document the proposed change in `docs/` and flag it for manual upstreaming
+
 ### C. Propose CLAUDE.md Additions
 
 Only for truly universal conventions that apply across ALL versions. These should be rare.

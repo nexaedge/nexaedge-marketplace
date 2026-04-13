@@ -267,7 +267,7 @@ All agents work relative to the `base_branch` recorded in Phase 0. **Every agent
 
 ### Before spawning any agent:
 - **Commit all pending changes on the base branch** in ALL repositories agents will work on. Run `git status` (and `git -C <code_repo> status` if applicable) and commit if needed before every `Agent()` call. Worktrees are created from HEAD — uncommitted files won't be visible.
-- **Verify HEAD includes all prior phase commits.** Run `git log --oneline -1` on each repo's base branch and confirm the most recent merge from the previous phase is present. Agents in specs-first multi-repo mode create worktrees via `git worktree add` from HEAD — if a prior phase's merge hasn't landed yet, the new agent won't see those files.
+- **BLOCKING: Verify HEAD includes all prior phase commits.** Run `git log --oneline -1` on each repo's base branch and confirm the most recent merge from the previous phase is present. **Do NOT spawn the agent until this check passes.** If the expected commit is missing, investigate — the previous phase may not have merged correctly. This has caused agent failures in both V0.1 and V0.2 (agent enters worktree from stale HEAD, can't find files from previous phase).
 - **For specs-first multi-repo manual worktrees:** After `git worktree add`, check if `scripts/setup-worktree.sh` exists in the code repo and instruct the agent to run it. This script copies `.env` and other gitignored files that worktrees don't inherit. If the script doesn't exist, instruct the agent to copy `.env` files manually: `cp <code_repo>/.env* <worktree_path>/`.
 
 ### Single-repo mode (specs and code in the same repo):
