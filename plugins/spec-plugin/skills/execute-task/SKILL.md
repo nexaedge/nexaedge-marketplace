@@ -16,6 +16,7 @@ Your task: execute ONE task end-to-end, producing output that meets all acceptan
 6. **Read the project spec** — find the main spec in `specs/` and check the **Project Context** section to understand the project type and code repository path
 7. Scan existing workspace (and code repo if separate) for patterns, conventions, and what's already built/written
 8. Check if the task file already has an `## Execution Log` section — if so, resume from where it left off
+9. **Worktree environment setup:** If working in a manual worktree (created via `git worktree add`, not `EnterWorktree`), check for `scripts/setup-worktree.sh` in the code repo root and run it with the worktree path as argument. If the script doesn't exist, manually copy `.env*` files from the main checkout to the worktree. Git worktrees don't inherit gitignored files.
 
 ### Project Type Detection
 

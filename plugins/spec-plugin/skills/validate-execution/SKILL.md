@@ -14,6 +14,7 @@ Your task: validate the version's output and guide the human through final verif
 4. Read the stories index: `specs/<version>/stories.md`
 5. **Read the project spec** — check **Project Context** for project type and code repository path
 6. Check if validation specs exist at `specs/<version>/qa/`
+7. **Worktree environment setup:** If working in a manual worktree (created via `git worktree add`, not `EnterWorktree`), check for `scripts/setup-worktree.sh` in the code repo root and run it with the worktree path as argument. If the script doesn't exist, manually copy `.env*` files from the main checkout to the worktree. Git worktrees don't inherit gitignored files.
 
 ### If no validation specs exist → Write them first (Phase 1B)
 
