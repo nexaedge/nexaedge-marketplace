@@ -1,0 +1,6 @@
+{
+  "name": "linear-spec-plugin-scripts",
+  "private": true,
+  "type": "commonjs",
+  "description": "Linear GraphQL CLI scripts shipped with the linear-spec-plugin Claude Code plugin. Zero runtime dependencies — Node 18+ stdlib only."
+}
