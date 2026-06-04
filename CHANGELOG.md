@@ -8,6 +8,21 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: spec-plugin v9] - 2026-06-04
+
+### Changed
+- feat: lean spec-plugin orchestration redesign + work-modes primitives plugin
+
+## [Plugin: work-modes v2] - 2026-06-04
+
+### Changed
+- feat: lean spec-plugin orchestration redesign + work-modes primitives plugin
+
+## [Marketplace v41] - 2026-06-04
+
+### Changed
+- feat: lean spec-plugin orchestration redesign + work-modes primitives plugin
+
 ## [Plugin: spec-plugin v8] - 2026-06-04
 
 ### Changed
