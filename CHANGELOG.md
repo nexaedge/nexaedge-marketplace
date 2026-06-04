@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: spec-plugin v8] - 2026-06-04
+
+### Changed
+- fix(spec-plugin): add worktree .env setup to execute-task and validate-execution skills
+
 ## [Plugin: spec-plugin v7] - 2026-04-13
 
 ### Changed
