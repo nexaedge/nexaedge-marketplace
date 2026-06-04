@@ -8,15 +8,15 @@ Your task: execute ONE task end-to-end, producing output that meets all acceptan
 
 ## Phase 1 — Load Context
 
-1. Read the task file at the provided path
+1. Read the task file (your story) at the provided path
 2. Determine the version from the path (e.g., `specs/v0.1-core-push/001-...` → v0.1-core-push)
 3. **Locate specs.** If the orchestrator specified a specs repo path in your prompt, read specs from there. Otherwise, look for `specs/` in CWD.
-4. Read the version architecture doc: `specs/<version>/architecture.md`
-5. Read the overall architecture: `specs/architecture.md`
-6. **Read the project spec** — find the main spec in `specs/` and check the **Project Context** section to understand the project type and code repository path
-7. Scan existing workspace (and code repo if separate) for patterns, conventions, and what's already built/written
+4. **Read `specs/<version>/context.md`** — shared version context (conventions, manifest, cross-cutting decisions).
+5. **Read `specs/<version>/lessons.md`** — what the team has learned so far. Re-read this whenever you resume after a red-button halt.
+6. Your story is self-contained — only open `specs/<version>/architecture.md` if the story explicitly sends you there. (Don't reload the full architecture by default.)
+7. Scan the relevant part of the code workspace for the patterns and conventions you'll follow
 8. Check if the task file already has an `## Execution Log` section — if so, resume from where it left off
-9. **Worktree environment setup:** If working in a manual worktree (created via `git worktree add`, not `EnterWorktree`), check for `scripts/setup-worktree.sh` in the code repo root and run it with the worktree path as argument. If the script doesn't exist, manually copy `.env*` files from the main checkout to the worktree. Git worktrees don't inherit gitignored files.
+9. **Code worktree:** set it up exactly as the **setup-playbook** says (`specs/<version>/setup-playbook.md`) — how to add the worktree, copy `.env`/gitignored files, install deps, run gates. If you discover a setup step the playbook is missing, add it to the playbook.
 
 ### Project Type Detection
 
@@ -40,7 +40,19 @@ Before producing any output:
 1. List every file to create or modify
 2. Define the order of operations
 3. Identify any ambiguities or blockers
-4. If the task is complex, present the approach to the user
+
+**Red-button check (do this now, and any time during execution).** If the story turns out **much larger or different than specified**, or you hit an **unexpected blocker**, do NOT grind for a long time and do NOT split the story yourself:
+- Broadcast a halt to the other engineers (`SendMessage`) so they don't hit the same wall.
+- Report to the team lead: the challenge, what you found, and 2–3 concrete options.
+- Wait for direction (the lead decides with the user; scope issues go to the live PO to re-refine). On resume, re-read `lessons.md` first.
+
+This early-flag discipline is what prevents mid-flight story splits.
+
+**Do it the short way — use the work-modes primitives** (dispatch them as agents, or apply their technique) instead of grep-spelunking:
+- **`explore-conventions`** before writing a new <thing> (controller, subscriber, error, factory, test) — match the codebase's established pattern instead of inventing one.
+- **`verify-symbol`** before calling any method/field/endpoint you didn't write — confirm it exists and get its real signature.
+- **`probe-contract`** to see how something actually behaves (run it in a REPL) instead of guessing from the source.
+- **`trace-flow`** when a value crosses layers and you need to know exactly what happens to it.
 
 ## Phase 3 — Execute
 
@@ -109,13 +121,13 @@ For non-code projects, verification is criteria-based:
 4. **Check language** — verify the output language matches the project's language setting
 5. Report what's done and what meets criteria
 
-## Phase 5 — Final Checks
+## Phase 5 — Final Checks & QA Handover
 
 1. Check every acceptance criterion from the task file
 2. For code: run all tests, linters, type checks, builds
 3. For non-code: re-read deliverable against criteria, verify references and links
 4. **Integration check** — verify the output connects properly to what exists
-5. Report what's done and what's passing/complete
+5. **Hand over to the live QA before declaring done.** There is one QA agent for the whole execution. `SendMessage` it: what you built, how to exercise it, and which Definition-of-Done items it covers. Address QA's findings now, while the work is fresh — don't defer them to an end-of-version gate.
 
 ## Phase 6 — Update Task File
 
@@ -147,10 +159,14 @@ Append an `## Execution Log` section to the task file:
 
 Then update `specs/<version>/stories.md` — mark the task as `completed` ONLY if ALL acceptance criteria pass. Otherwise mark as `in-progress`. After updating, **re-read stories.md** to verify the change was saved.
 
-## Phase 7 — Document QA Requirements (Code Projects Only)
+Also append your durable learnings (surprises, under-specified spots, setup gotchas, decisions) to **`specs/<version>/logs/engineer-<N>.md`** — your own file. The PO consolidates these into `lessons.md` for everyone.
 
-After completing a code task, ensure validation can happen without guessing:
+**Spec-workspace git:** write all of the above (execution log, `stories.md`, your engineer log) on the current branch, but **do not run git in the spec workspace** — the team lead commits it (single-committer rule). Your only git is in the code worktree, per your role's merge protocol.
 
-1. **Startup commands** — if the task adds or changes how services are started, update `docs/dev-environment.md` with exact commands
-2. **Setup prerequisites** — if new seed scripts, migrations, env vars, or config overrides are needed, document them in the execution log under `**QA Setup**`
-3. **Architecture updates** — if implementation diverged from the architecture doc, update `specs/<version>/architecture.md`
+## Phase 7 — Make QA's job guess-free (Code Projects)
+
+The live QA verifies your handover (Phase 5), so give it what it needs:
+
+1. **In the handover message** — exact steps to exercise what you built, which DoD items it covers, and any new seed scripts, migrations, env vars, or config overrides needed to run it.
+2. **Startup commands** — if the task changed how services start, update `docs/dev-environment.md` with the exact commands, and reflect any new gotcha in `specs/<version>/setup-playbook.md`.
+3. **Architecture updates** — if the implementation diverged from the architecture doc, note it in your execution log and flag it to the team lead (so the PO can reconcile the spec). Don't silently diverge.

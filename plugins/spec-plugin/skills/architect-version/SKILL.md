@@ -41,6 +41,15 @@ Identify all key decisions needed for this version. Adapt categories to the proj
 
 Pay special attention to **"Simplified in this version"** from the version spec — architecture should match the simplified scope, not the full future version.
 
+### Ground every sketch in reality (this is what eliminates fix cycles)
+
+Do **not** write code sketches against assumed APIs. The biggest source of downstream rework is an architecture that references a method/field/endpoint that doesn't exist, or a transformation that silently changes a value. Before you commit a decision, verify it against the real code using the **work-modes** primitives (dispatch them as agents, or apply their technique inline):
+
+- **`verify-symbol`** — for every external method/field/endpoint/flag your sketch relies on, confirm it exists and get its real signature (don't assume `partner.slug` or `CreditOffer.find_by_offer`).
+- **`trace-flow`** — for every cross-layer transformation in your design or DoD, trace the value end-to-end and note where its shape changes (the emit-symbol-`tr`-to-contract class of bug).
+
+When the V0.4 architect did exactly this, the version passed QA 11/11 on the first try with zero fix cycles.
+
 ## Phase 3 — Consult User
 
 Use AskUserQuestion for every significant decision point. Present:
@@ -53,6 +62,17 @@ Limit to 2-3 decisions per round. Iterate until resolved.
 ## Phase 4 — Write Architecture Doc
 
 Write `specs/<version>/architecture.md`.
+
+### The Definition of Done is your most scrutinized output
+
+The architecture doc must contain an explicit **`## Definition of Done`** — concrete, testable acceptance criteria for this version, derived from (and sharpening) the version spec's high-level DoD. A **fresh, independent `auditor`** will gate this DoD before any story is built, so write it to survive that audit:
+
+- **Assert behavior, not artifacts** — "produces correct output from any valid input," not "matches this frozen golden file / snapshot." A reproduction oracle passes when the code hardcodes the expected output.
+- **Make each item falsifiable** — a concrete, observable way it could fail.
+- **Make it react to change** — if the input/spec changed in a way this version handles, the DoD should notice.
+- **Beat the trivial implementation** — if a fixture replayer, hardcoded lookup, or stub could pass an item, it's too weak. Strengthen it.
+
+For non-code projects the same applies: criteria must assert the deliverable *does its job*, not merely that a file exists.
 
 ### For Code Projects
 
@@ -70,7 +90,8 @@ Write `specs/<version>/architecture.md`.
    - Test infrastructure (fixtures, mocking)
 8. **Flow Diagrams** — Mermaid diagrams for data flows, sequences
 9. **State Machines** — Mermaid state diagrams for stateful processes
-10. **Constraints & Assumptions**
+10. **Definition of Done (testable)** — concrete, behavior-based, falsifiable acceptance criteria (see callout above; this is what the auditor gates)
+11. **Constraints & Assumptions**
 
 ### For Non-Code Projects
 
@@ -80,8 +101,9 @@ Write `specs/<version>/architecture.md`.
 4. **Input Requirements** — What data, access, or prior work is needed
 5. **Quality Criteria** — How each deliverable will be evaluated
 6. **Stakeholder Review Plan** — Who reviews what, when
-7. **Dependencies & Risks** — What could block or delay this version
-8. **Constraints & Assumptions**
+7. **Definition of Done (testable)** — concrete, behavior-based criteria asserting each deliverable does its job (see callout above; this is what the auditor gates)
+8. **Dependencies & Risks** — What could block or delay this version
+9. **Constraints & Assumptions**
 
 ### Diagram Requirements (all projects)
 
@@ -97,4 +119,6 @@ Present a summary:
 - Scope of decisions made
 - Deferred decisions (and why)
 - Key risks or open questions
-- Ask for final sign-off
+- The **Definition of Done** you wrote — flag that it goes to the independent auditor next
+
+Report back to the team lead (write the doc; the lead commits it). If the auditor later returns gaps, revise the DoD/architecture to address each finding and report for a re-gate — iterate until it passes.

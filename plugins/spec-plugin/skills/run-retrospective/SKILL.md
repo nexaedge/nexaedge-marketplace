@@ -10,13 +10,14 @@ Your output: documentation fixes, topic-based lesson files in `docs/`, and propo
 
 Gather all sources of truth about what happened during this version:
 
-1. **Read PROGRESS.md** — overall timeline, issues encountered, fix cycles
-2. **Read story execution logs** — check each story file in `specs/<version>/` for `## Execution Log` sections (look for "Issues Encountered", "Struggled With", "Decisions Made")
-3. **Read QA run results** — check each spec in `specs/<version>/qa/` for `## Run Results`, `## Setup & DX Findings`, and `## Struggles & Patterns` sections
-4. **Read the architecture doc** — `specs/<version>/architecture.md`
-5. **Read commit history** — `git log --oneline` for the version's timeframe, look for fix commits, reverts, multiple attempts
-6. **Read current skills** — `.claude/skills/*/SKILL.md` for context on what agents are told to do
-7. **Read CLAUDE.md** — current project conventions
+1. **Read `lessons.md`** — `specs/<version>/lessons.md` is the PO's curated session log; it's your richest single source of what the team struggled with and learned.
+2. **Read per-engineer logs** — `specs/<version>/logs/engineer-*.md` for the raw learnings feed behind `lessons.md`.
+3. **Read story execution logs** — check each story file in `specs/<version>/` for `## Execution Log` sections ("Issues Encountered", "Struggled With", "Decisions Made")
+4. **Read QA results** — `specs/<version>/qa/` for run records, the DoD audit (`dod-audit.md`), setup/DX findings, and recurring patterns
+5. **Read the setup-playbook** — `specs/<version>/setup-playbook.md`: what setup friction got discovered and codified (and whether it should be promoted to a reusable script)
+6. **Read context.md & the architecture doc** — `specs/<version>/context.md` and `specs/<version>/architecture.md`; note any drift between them and reality
+7. **Read commit history** — `git log --oneline` for the version's timeframe; look for fix commits, reverts, red-button halts, DoD re-gate loops
+8. **Read current skills & CLAUDE.md** — `.claude/skills/*/SKILL.md` (or the plugin source) and project conventions for context on what agents are told to do
 
 ## Phase 2 — Identify Patterns
 

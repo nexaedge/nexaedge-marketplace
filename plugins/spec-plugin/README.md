@@ -15,11 +15,17 @@ A Claude Code plugin for spec-driven project execution. Provides a complete pipe
 | `/plan` | Design an evolutionary delivery roadmap with version progression |
 | `/orchestrate` | Execute a version end-to-end with a coordinated agent team |
 
-The orchestrator runs a simple cycle per version:
+The orchestrator coordinates a **living team** per version:
 
 ```
-/architect-version → /build-stories → [ /execute-task → /validate-execution ]* → human signs off
+/architect-version → [ DoD gate → architect fix ]* → /build-stories + PREP
+  → [ /execute-task → live QA handover ]*  (engineers; red-button halt/resume)
+  → PO final review → human signs off
 ```
+
+- A fresh, independent **auditor** gates the Definition of Done *before* any story is built, so a version isn't built against a DoD that measures the wrong thing.
+- The **product-owner** and a single **QA** stay live the whole session; **engineers** persist as a pool and carry context across stories.
+- A **setup-playbook**, shared **`context.md`**, and a running **`lessons.md`** are prepared up front, so engineers read those instead of re-loading the full architecture.
 
 A version ships when the human confirms its Definition of Done is met.
 
@@ -36,15 +42,16 @@ The project spec's **Project Context** section captures what `/ideate` learned a
 
 ## Agents
 
-| Agent | Role |
-|-------|------|
-| `architect` | Deep-dive version architecture. No Bash — documents only. |
-| `product-owner` | Story breakdown and retrospectives. |
-| `engineer` | Task execution — new stories and validation fixes. |
-| `designer` | Visual UI creation following the design system. |
-| `qa` | Writes validation specs and executes them. Reports failures — never fixes. |
+| Agent | Role | Lifecycle |
+|-------|------|-----------|
+| `architect` | Deep-dive version architecture + a behavior-based Definition of Done. | Per pass; revised in the DoD-gate loop |
+| `auditor` | Independent DoD gate — no execution context. Reports PASS or gaps; never fixes. | Fresh, one-shot per gate round |
+| `product-owner` | Story breakdown, then stays live: answers questions, re-refines scope, curates `lessons.md`, runs final review + human handoff. | Whole session |
+| `engineer` | Task execution — new stories and validation fixes. | Session pool (persistent) |
+| `designer` | Visual UI creation following the design system. | Per design story |
+| `qa` | Writes validation specs and runs them as engineers hand work over. Reports failures — never fixes. | Whole execution (one live QA) |
 
-All agents call `EnterWorktree` as their first action to work on an isolated copy of the repo.
+Agents work the **code repo** in isolated worktrees and the **spec workspace** (second brain) directly on its current branch — see *Workspaces* below.
 
 ## All Skills
 
@@ -60,36 +67,14 @@ All agents call `EnterWorktree` as their first action to work on an isolated cop
 | `/run-retrospective` | Post-version lessons learned |
 | `/orchestrate` | Full version execution with agent team |
 
-## Worktree Isolation
+## Workspaces
 
-Agents work in isolated git worktrees to avoid conflicts:
+Every project has two workspaces, treated differently:
 
-1. **Agent definitions** instruct each agent to call `EnterWorktree` before doing any work
-2. **Orchestrate skill** provides worktree names in agent prompts
-3. **PostToolUse hook** on `EnterWorktree` runs `scripts/setup-worktree.sh` if it exists in your project
+- **Spec workspace** — where specs and session docs live (usually the second brain; the CWD when `/orchestrate` runs). **Shared context, no worktrees** — every role reads and writes on the current branch so all agents see the latest specs, context, and lessons. To keep the shared working tree safe, **only the team lead commits it** (single-committer); other roles write files and report.
+- **Code workspace** — the repo holding the code being built. Engineers work in **isolated worktrees** and merge back rebase-first, because the codebase may have concurrent work.
 
-The plugin's agent hooks look for `scripts/setup-worktree.sh` in your **project directory** (not the plugin). If the file exists, it runs automatically after `EnterWorktree` to copy gitignored files into the worktree. Create one in your project like this:
-
-```bash
-#!/usr/bin/env bash
-# scripts/setup-worktree.sh — runs via PostToolUse hook on EnterWorktree
-set -euo pipefail
-
-MAIN_REPO=$(git worktree list --porcelain | head -1 | sed 's/worktree //')
-WORKTREE_DIR=$(pwd)
-
-[ "$MAIN_REPO" = "$WORKTREE_DIR" ] && exit 0
-
-# Add files that worktrees don't get automatically (gitignored files)
-for f in .env .env.local .tool-versions; do
-  [ -f "$MAIN_REPO/$f" ] && [ ! -f "$WORKTREE_DIR/$f" ] && cp "$MAIN_REPO/$f" "$WORKTREE_DIR/$f"
-done
-
-# Optional: check services are running
-# curl -sf http://localhost:8000/api/health >/dev/null || echo "⚠ Backend not running"
-
-exit 0
-```
+How to create a worktree for *your* code repo isn't hardcoded — at the start of each version a recon step writes a **`setup-playbook.md`** describing exactly how to spin one up for this repo (branch base, copying `.env`/gitignored files, installing deps, running gates, known gotchas), confirmed with you and improved by agents as they learn.
 
 ## Specs Directory Convention
 
@@ -101,10 +86,16 @@ specs/
 ├── v0.1-short-name.md          # Version specs (from /plan)
 ├── v0.2-short-name.md
 ├── v0.1-short-name/            # Per-version folders (from /orchestrate)
-│   ├── architecture.md         # Version architecture (from /architect-version)
+│   ├── architecture.md         # Version architecture + Definition of Done (from /architect-version)
+│   ├── setup-playbook.md       # How to spin up a code worktree for this repo (PREP)
+│   ├── context.md              # Shared version context engineers read (from /build-stories)
 │   ├── stories.md              # Story index (from /build-stories)
-│   ├── 010-story-slug.md       # Story files
-│   └── qa/                     # Validation specs (from /validate-execution)
+│   ├── 010-story-slug.md       # Story files (self-contained)
+│   ├── lessons.md              # PO-curated running session lessons
+│   ├── logs/                   # Per-engineer running logs
+│   │   └── engineer-1.md
+│   └── qa/                     # Validation (from /validate-execution)
+│       ├── dod-audit.md        # Independent DoD gate verdict (from auditor)
 │       ├── specs.md
 │       └── 010-spec-name.md
 └── ...

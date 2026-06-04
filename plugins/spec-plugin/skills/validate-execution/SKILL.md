@@ -4,7 +4,12 @@ description: "Validate a version's implementation against its Definition of Done
 argument-hint: "[version, e.g. v0.1-core-push]"
 ---
 
-Your task: validate the version's output and guide the human through final verification.
+Your task: as the **single live QA for the whole execution**, write the validation specs and run them **continuously as engineers hand work over** — not in one batch at the end.
+
+**How this runs:**
+- You write validation specs from the Definition of Done (Phase 1), then verify each story **when its engineer hands it over** (pull `code_branch`, run the relevant cases, reply PASS/findings to the engineer, CC the team lead on failures). Coverage accumulates in `specs/<version>/qa/` across the version.
+- **You do not produce the human-validation guide** — the **PO** does, from your accumulated findings, in the final review. You feed evidence; the PO frames it for the human.
+- **Spec-workspace git:** write your specs and findings under `specs/<version>/qa/`, but **do not commit** — the team lead commits the spec workspace.
 
 ## Phase 1 — Load Context
 
@@ -14,7 +19,7 @@ Your task: validate the version's output and guide the human through final verif
 4. Read the stories index: `specs/<version>/stories.md`
 5. **Read the project spec** — check **Project Context** for project type and code repository path
 6. Check if validation specs exist at `specs/<version>/qa/`
-7. **Worktree environment setup:** If working in a manual worktree (created via `git worktree add`, not `EnterWorktree`), check for `scripts/setup-worktree.sh` in the code repo root and run it with the worktree path as argument. If the script doesn't exist, manually copy `.env*` files from the main checkout to the worktree. Git worktrees don't inherit gitignored files.
+7. **Code checkout:** maintain your own checkout/worktree of `code_repo` at `code_branch`, set up per the **setup-playbook** (`specs/<version>/setup-playbook.md`). Pull `code_branch` as engineers merge their stories so you always validate the latest integrated state.
 
 ### If no validation specs exist → Write them first (Phase 1B)
 
@@ -121,6 +126,8 @@ For each test case:
    - Database checks: query directly
 2. **Compare actual vs expected** — record clearly
 
+**Don't trust green unit suites — exercise the real thing.** Past runs shipped contract bugs (a missing `_live_` env infix, `expires_in` vs `expires_at`) that 100+ green mocked tests hid. Use the **work-modes `probe-contract`** primitive to run the real classes in a REPL and observe the actual request/response shape; use **`verify-symbol`** to prove a method/field/endpoint truly exists. A live staging env is nice but not required — a REPL against the real code is enough.
+
 ### For Non-Code Projects
 
 For each review criterion:
@@ -156,32 +163,15 @@ Report via SendMessage:
 - Suggested fix areas
 - Whether failures are CRITICAL (blocking) or MINOR (deferrable)
 
-### If all pass → Guide human validation
+### If all pass → Hand evidence to the PO
 
-Present the human validation guide:
+You don't write the human-validation guide — the PO does, in the final review. When your accumulated validation passes, report to the team lead that QA is green and hand over your evidence so the PO can frame the human handoff:
 
-```markdown
-## Human Validation Guide
+- A summary of what passed (by DoD item), with pointers to the run records in `specs/<version>/qa/`
+- Anything that needs human judgment (visual craft, UX, subjective quality) that you deliberately did **not** assert
+- Known limitations you observed (e.g., from "Simplified in this version")
 
-### What was delivered
-- Summary of the version's outcomes
-
-### How to review (code projects: how to run it)
-- Exact steps to see/use the deliverables
-
-### What to verify
-Walk through each Definition of Done item that requires human judgment.
-
-### Quick checks
-- [ ] Key deliverables are complete and accessible
-- [ ] Quality meets expectations
-- [ ] [Project-specific checks]
-
-### Known limitations in this version
-- (from "Simplified in this version")
-```
-
-The version ships only when the human confirms.
+The PO assembles these into the human-validation guide; the version ships only when the human confirms.
 
 ## Phase 6 — Document Findings
 

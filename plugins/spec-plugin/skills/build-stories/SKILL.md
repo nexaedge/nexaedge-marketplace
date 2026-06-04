@@ -73,9 +73,10 @@ Each story should include clear acceptance criteria that can be verified by read
 - Design stories before their integration stories
 - Each story produces a **working increment**
 
-### Self-containment
-- Include enough context in each story that the executing agent doesn't need to read 10 other documents
-- Inline the relevant architecture decisions
+### Self-containment (so engineers never reload the 61 KB architecture)
+- Include enough context in each story that the executing agent doesn't need to read other documents
+- **Inline the relevant architecture decisions** directly into the story — the engineer reads its story + `context.md` + `lessons.md`, nothing more
+- Anything cross-cutting (shared conventions, the file manifest, decisions that touch many stories) goes in `context.md`, not repeated in every story
 
 ## Phase 3 — Write Story Files
 
@@ -129,3 +130,32 @@ Write `specs/<version>/stories.md`:
 ## Dependency Graph
 (mermaid diagram showing story dependencies if non-linear)
 ```
+
+## Phase 5 — Write Shared Context
+
+Engineers read **only their story + `context.md` + `lessons.md`** during execution — never the full architecture. Write the shared context now so it exists before any engineer spawns.
+
+Write `specs/<version>/context.md` — keep it tight; it's read once per story:
+
+```markdown
+# <Version> — Shared Context
+
+## Conventions
+Naming, structure, imports, formatting, test layout that every story follows.
+
+## File / Component Manifest
+Where things live and what each part is responsible for.
+
+## Key Decisions (cross-cutting)
+The architecture decisions that touch multiple stories — inlined so engineers don't open architecture.md.
+
+## Setup
+Pointer to `setup-playbook.md` (how to spin up a code worktree for this repo).
+
+## Pointers
+Links to the deeper sections of architecture.md for the rare case an engineer needs them.
+```
+
+Also scaffold the session log surface (the orchestrator commits these during PREP):
+- `specs/<version>/lessons.md` — start it with a heading and an empty "Lessons" section. You (the PO) own and curate it through the session.
+- `specs/<version>/logs/` — the directory where each engineer appends its own `engineer-N.md` running log.

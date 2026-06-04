@@ -1,338 +1,154 @@
 ---
 name: orchestrate
-description: "Execute a version end-to-end with a coordinated agent team. Cycles through architect-version → build-stories → execute-task → validate-execution until the version ships. A version is shipped when the human signs off."
+description: "Execute a version end-to-end with a coordinated agent team. Cycles through architect-version → DoD gate → build-stories → execute → validate until the version ships. A version is shipped when the human signs off."
 argument-hint: "[version, e.g. v0.1-core-push]"
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Task, TaskCreate, TaskList, TaskGet, TaskUpdate, TeamCreate, TeamDelete, SendMessage, AskUserQuestion, Skill
 ---
 
 # Orchestrate — Version Execution Manager
 
-You are a team lead. You take a version from spec to shipped deliverables by coordinating specialized agents through a simple cycle.
+You are a team lead. You take a version from spec to shipped deliverables by coordinating a **living team**: a few roles stay alive for the whole session and carry context, while one role stays deliberately fresh so verification is independent.
 
 ## The Pipeline
 
 ```
-architect-version → build-stories → [ execute-task → validate-execution ]* → human signs off
+architect-version → [ DoD gate → architect fix ]*        (loop until the DoD is sound)
+  → build-stories  (PO; stays live)
+  → PREP           (setup-playbook · context.md · lessons.md — committed before any engineer spawns)
+  → [ execute story → hand over to live QA ]*            (engineers; red-button halt/resume)
+  → PO reviews all work against the spec → human validation
+  → human signs off → ship
 ```
 
-The inner cycle repeats until validation passes and the human confirms.
+## Two Workspaces (read this first — it governs every worktree decision)
 
-## Prerequisites
+Every project has two workspaces. Treat them differently:
 
-Before starting, verify:
-1. Version spec exists at `specs/<version>.md`
-2. Overall architecture exists at `specs/architecture.md`
-3. Roadmap exists at `specs/roadmap.md`
+- **Spec workspace** — where specs and session docs live (usually the second brain; the CWD when `/orchestrate` runs). This is **shared context**. **No worktrees here.** Every role reads and writes on the **current branch directly** so all agents see the latest specs, context, and lessons immediately. Git on this workspace is **serialized through you** (the team lead) — see the Git Protocol.
+- **Code workspace** — the repo holding the code being built (external repo, or the same repo if specs live inside the code). The codebase may have concurrent work, so engineers work in **isolated worktrees** and merge back **rebase-first**. How to create a worktree for *this* repo is captured in the **setup-playbook** (written during PREP), not hardcoded here.
 
-## Spawning Agents
+If the project has no code workspace (pure docs/research), there is only the spec workspace and everything happens on its current branch — no worktrees at all.
 
-Use agent definitions from `.claude/agents/` as `subagent_type`. Each agent knows its role — you provide task context.
+## Roles & Lifecycle
 
+| Role | Lives | Notes |
+|---|---|---|
+| `architect` | per pass | Revised in the DoD-gate loop. |
+| `auditor` | fresh, one-shot | Independent DoD gate — **no execution context**, so it can't vouch for work it helped build. |
+| `product-owner` | **whole session** | Breaks down stories, then stays: answers engineer questions, re-refines scope, consolidates lessons, runs the final spec review. |
+| `engineer` | **session pool** | Persistent workers. Halted/resumed on red-button, **never killed mid-session**. Carry context across stories. |
+| `qa` | **whole execution** | One live QA. Engineers hand over to it continuously, before a story is "done." |
+| `designer` | per design story | Unchanged role; code-worktree policy. |
+
+Independence is preserved without churning agents: the **auditor** is fresh, **QA** never wrote the code it checks, the **PO** reviews against the spec, and the **human** validates. Engineers can therefore persist and cut the per-story restart tax.
+
+Spawn agents with definitions from `agents/` as `subagent_type`:
 ```
-Agent({ subagent_type: "<agent-name>", team_name: "<version>",
-        name: "<instance-name>",
-        prompt: "<worktree name, what to do, why, relevant context>" })
+Agent({ subagent_type: "<role>", team_name: "<version>", name: "<instance>",
+        prompt: "<workspace paths, base branches, what to do, why, context>" })
 ```
 
-Every agent calls `EnterWorktree` first. Provide the worktree name in the prompt. Available types: `architect`, `product-owner`, `engineer`, `designer`, `qa`.
+## Phase 0 — Detect Workspaces & Select Version
 
-## Phase 0 — Detect Workspace, Select Version & Assess State
-
-### Step 0a: Record Base Branch
-
-Record the **current git branch** as `base_branch` (`git branch --show-current`). This is the reference branch for ALL agent work — agents create worktrees from it, compare against it, and merge back to it. **Never hardcode "main"** — use whatever branch is current when `/orchestrate` is invoked.
-
-### Step 0b: Detect Workspace & Locate Specs
-
-Before doing anything else, understand the workspace — the same way `/ideate` does:
-
-1. **Read CLAUDE.md** (project-level and user-level) — learn conventions, folder structure, references to second-brain or external repos.
-2. **Scan the directory** — what's here? Code repo (package.json, Cargo.toml, go.mod)? Document workspace? Organized workspace with project subdirectories?
-3. **Check for existing specs** — does a `specs/` directory exist here, or inside a subdirectory?
-4. **Check parent context** — if this is a subdirectory, what's above?
-
-From this, determine the workspace layout:
-
-- **`specs/` exists in CWD** → you're in a project directory (or single-repo). Record CWD as the specs location. If the Project Context references a separate code repo, record it as `code_repo` (specs-first multi-repo).
-- **CWD is a workspace root** (e.g., second-brain, organized by projects/areas) → look for the project inside subdirectories. Scan for project folders with `specs/` inside them. If the version argument or user context hints at a specific project, match by name. If ambiguous, ask via `AskUserQuestion`.
-- **CWD is a code repository** (has code markers but no `specs/`) → search for an external specs location:
-  a. Check CLAUDE.md for references to a second-brain or specs repository.
-  b. Search there for a folder matching the current project — by directory name, git remote, or project name.
-  c. If found, record `specs_repo` (absolute path), `code_repo` (CWD), and `specs_prefix` (path to specs within the specs repo).
-  d. If not found, ask the user via `AskUserQuestion`.
-
-This determines the **workspace mode**:
-- **Single-repo**: specs and code in the same repo. Agents use `EnterWorktree`.
-- **Specs-first multi-repo**: CWD is the specs/workspace repo, code lives elsewhere. Agents create manual worktrees in the code repo.
-- **Code-first multi-repo**: CWD is the code repo, specs live elsewhere (e.g., second-brain). Agents use `EnterWorktree` for code isolation. Spec changes are committed directly in the specs repo.
-
-### Step 0c: Select Version & Assess State
-
-1. If no version argument provided, read the roadmap (in the specs location) and ask the user to pick one via `AskUserQuestion`. **Never guess — keep asking until they choose.**
-2. Read the version spec. Note the **Definition of Done**.
-3. Check existing state:
-   - `<version>/architecture.md` exists → architecture done
-   - `<version>/stories.md` exists → stories exist
-   - Story files with `## Execution Log` → some stories done
-   - `<version>/qa/` exists → validation specs exist
-4. Present state to user, confirm starting point.
-5. `TeamCreate({ team_name: "<version>" })`
+1. **Read CLAUDE.md** (project + user) and scan the CWD. Locate `specs/` (here or in a subdirectory). This is the **spec workspace**; record its path and its **current branch** (`git branch --show-current`) as `spec_branch`. Never hardcode `main`.
+2. **Identify the code workspace** from the project spec's **Project Context** (code repository path) or CLAUDE.md. Record `code_repo` (absolute path) and its base branch as `code_branch`. If specs live inside the code repo, `code_repo` == spec workspace. If there is no code, mark "docs-only".
+3. **Select the version.** If no argument, read the roadmap and ask via `AskUserQuestion`. **Never guess — keep asking until they choose.**
+4. **Assess state** — check what already exists under `specs/<version>/`: `architecture.md`, `setup-playbook.md`, `context.md`, `stories.md`, story files with `## Execution Log`, `qa/`, `lessons.md`. Present the resume point and confirm.
+5. `TeamCreate({ team_name: "<version>" })`.
 
 ## Phase 1 — Architecture
 
-**Skip if done and user confirms to resume.**
+**Skip if `architecture.md` exists and the user confirms resume.**
 
-Spawn architect:
-```
-Agent({ subagent_type: "architect", team_name: "<version>",
-        name: "architect",
-        prompt: "Base branch: <base_branch>.
-                 Specs location: <specs path>.
-                 Enter worktree 'architect-<version>'.
-                 Run /architect-version <version>.
-                 Version spec: <specs_prefix>/<version>.md.
-                 Context: <relevant decisions or preferences>" })
-```
-On completion: merge worktree → **shut down the architect agent immediately** → notify user with key decisions.
+Spawn `architect` to run `/architect-version <version>`. The architect works on the **spec workspace, current branch, no worktree**; it writes `architecture.md` and reports — **you commit it** (Git Protocol). On completion, notify the user with key decisions. Keep the architect addressable — the gate may send it back.
 
-## Phase 2 — Story Breakdown
+## Phase 2 — DoD Gate (independent)
 
-**Skip if done and user confirms to resume.**
+The most expensive failure mode is building a whole version against a Definition of Done that measures the wrong thing. Catch it here, cheaply.
 
-**CRITICAL: Version architecture is a hard prerequisite.** Before spawning the PO, verify `<specs_prefix>/<version>/architecture.md` exists on the base branch HEAD. If it doesn't exist, STOP and investigate — the architect phase may not have merged correctly. PO agents that work without the version architecture produce stories that diverge from architectural decisions.
+Spawn a **fresh** `auditor` (no prior context) to audit the version's DoD in `specs/<version>/architecture.md` against the behavior-not-artifact rubric (the auditor agent carries it). The auditor is read-only and returns its verdict; **record it** to `specs/<version>/qa/dod-audit.md` and commit.
 
-Spawn product-owner:
-```
-Agent({ subagent_type: "product-owner", team_name: "<version>",
-        name: "product-owner",
-        prompt: "Base branch: <base_branch>.
-                 Specs location: <specs path>.
-                 Enter worktree 'stories-<version>'.
-                 Run /build-stories <version>.
+- **PASS** → proceed to Phase 3.
+- **Gaps found** → send the auditor's specific findings back to the **architect** to revise the DoD/architecture, then spawn a **new fresh auditor** to re-gate. Loop until PASS. (Use a new auditor each round — independence.)
 
-                 REQUIRED FIRST STEP: Read the VERSION-SPECIFIC architecture before doing anything else:
-                   <specs_prefix>/<version>/architecture.md
-                 This file is your PRIMARY source for story breakdown. It contains the file manifest,
-                 component breakdown, code sketches, test strategy, and dependency graph.
-                 Do NOT proceed with story writing until you have read this file.
-                 If the file doesn't exist or is empty, STOP and report back immediately.
+## Phase 3 — Story Breakdown + PREP
 
-                 Architecture: <specs_prefix>/<version>/architecture.md.
-                 Key decisions: <summarize 2-3 that affect decomposition>" })
-```
-On completion: merge worktree → **shut down the product-owner agent immediately** → present story list to user → **review stories against the version architecture** for divergences → ask to confirm execution order.
+**Prerequisite (BLOCKING):** confirm `specs/<version>/architecture.md` exists on the spec workspace's current-branch HEAD before spawning the PO. Stories built without the version architecture diverge from it.
 
-## Phase 3 — Execute & Validate Cycle
+1. **Build stories.** Spawn `product-owner` to run `/build-stories <version>`. The PO works on the spec workspace, current branch, no worktree. It produces self-contained story files, `stories.md`, and **`context.md`** (shared version context: conventions, file manifest, key decisions, pointers — so engineers never reload the full architecture). **Do NOT shut the PO down** — it stays live for the rest of the session.
+2. **Review** the story list against the architecture for divergences; confirm execution order with the user.
+3. **PREP — write the session scaffolding and commit it before any engineer spawns** (engineers read these from the spec workspace branch, so they must exist there first):
+   - **setup-playbook** (`specs/<version>/setup-playbook.md`) — spawn a recon step (an `engineer` is fine) to inspect `code_repo` and document exactly how to spin up a code worktree for *this* repo: branch base, how to copy `.env`/gitignored files, dependency install, how to run gates/tests, known toolchain gotchas. **Seed it from the previous version's playbook if one exists** (a diff, not a rewrite). **Confirm completeness with the user** before execution.
+   - **`context.md`** — produced by the PO in step 1.
+   - **`lessons.md`** — create it empty (PO owns it; engineers feed it via their own logs).
+   - Commit all three to the spec workspace branch.
 
-This is the core loop. It alternates between executing tasks and validating results until the version ships.
+## Phase 4 — Execute & Validate
 
-### Step 1: Execute Tasks
+The core loop. Engineers build in code worktrees; one live QA verifies continuously.
 
-Read `specs/<version>/stories.md` for pending tasks. Create a task per pending story with `blockedBy` based on prerequisites.
+### Team composition — ask the user
+Analyze the dependency graph in `stories.md` for parallelism. Present via `AskUserQuestion`: graph, parallel tracks, suggested size (1 sequential / 2 recommended / 3 max). Code+UI stories use a `designer`. Then **spawn the engineer pool and the single live QA**.
 
-**Team composition — ask the user:**
-1. Analyze the dependency graph for parallelism potential
-2. Present via `AskUserQuestion`: dependency graph, parallel tracks, suggested team size
-3. Options: 1 engineer (sequential), 2 (recommended), 3 (max parallelism)
-4. For code projects with UI: 1 designer for `/interface-design` stories
+### Model tiers
+Each role carries a default model (`architect`/`auditor`/`product-owner` → opus; `engineer`/`designer`/`qa` → sonnet). **Override per story when it pays:** spawn an engineer at `haiku` for a trivial/mechanical story, or `opus` for a gnarly algorithmic one (`Agent({ subagent_type, model })`). Roles also dispatch the **work-modes** primitives (`verify-symbol`@haiku, `trace-flow`@opus, `probe-contract`@sonnet, `explore-conventions`@sonnet, `setup-env`@haiku) for the right sub-task at the right tier — the architect and engineers should use `verify-symbol`/`trace-flow` to ground work in the real code.
 
-**Dispatch loop** — repeat until all tasks complete:
-1. Find unblocked tasks
-2. Match `subagent_type` to the story's `Agent` field (`engineer` or `designer`)
-3. **CRITICAL: Never reuse an existing agent for a different task.** Every task MUST get a fresh agent. Before spawning, shut down any completed agents that are still running.
-4. Spawn agent — adapt prompt based on workspace mode:
-   **Single-repo:**
-   ```
-   Agent({ subagent_type: "<agent-type>", team_name: "<version>",
-           name: "<agent>-N",
-           prompt: "Base branch: <base_branch>.
-                    Enter worktree 'task-NNN'.
-                    Run /execute-task <task-path>.
-                    Context: <prior completions, design outputs, etc.>" })
-   ```
-   **Specs-first multi-repo (CWD is specs repo, code_repo is external):**
-   ```
-   Agent({ subagent_type: "<agent-type>", team_name: "<version>",
-           name: "<agent>-N",
-           prompt: "Base branch: <base_branch>.
-                    Code repository: <code_repo>
-                    Create a code worktree: git -C <code_repo> worktree add .claude/worktrees/task-NNN -b worktree-task-NNN <base_branch>
-                    Work from <code_repo>/.claude/worktrees/task-NNN for all code changes.
-                    Run /execute-task <task-path>.
-                    Context: <prior completions, design outputs, etc.>
-                    Before reporting back: clean commit history, merge to <base_branch> in code repo (fast-forward only), remove code worktree, commit spec updates." })
-   ```
-   **Code-first multi-repo (CWD is code repo, specs in external repo):**
-   ```
-   Agent({ subagent_type: "<agent-type>", team_name: "<version>",
-           name: "<agent>-N",
-           prompt: "Base branch: <base_branch>.
-                    Specs repo: <specs_repo>.
-                    Enter worktree 'task-NNN'.
-                    Run /execute-task <task-path>.
-                    Context: <prior completions, design outputs, etc.>
-                    Before reporting back: clean commit history, merge to <base_branch> (fast-forward only), commit spec updates in specs repo." })
-   ```
-5. On completion: merge worktree → **shut down the agent immediately** → update story status → update `PROGRESS.md`
+### Dispatch loop — until all stories are done
+1. Find unblocked stories. Match `subagent_type` to the story's `Agent` field.
+2. **Assign to a pool engineer.** An engineer takes a story, finishes it, then takes the next — it is **not** killed between stories (that's the point). Match each story to a free engineer.
+3. The engineer (per `/execute-task`): creates a **code worktree** per the setup-playbook, reads **its story + `context.md` + `lessons.md`** (not the full architecture), builds, **hands over to the live QA** before declaring done, and writes its learnings to **`logs/engineer-N.md`** in the spec workspace.
+4. **On report-back:** the engineer has already merged its code (rebase-first) into `code_branch` and removed its code worktree. **You commit its spec-workspace files** (`logs/engineer-N.md`, the story's `## Execution Log`, `stories.md` status) — see Git Protocol. Then update progress.
+5. **Forward the engineer's report to the live PO** (what was done, learnings, anything under-specified). The PO consolidates into `lessons.md`, re-refines upcoming stories if needed, and tells you which engineers should re-read `lessons.md`.
 
-Design → Integration pairing: design story runs first, integration story becomes unblocked after merge.
+### Continuous QA
+QA runs the whole time. Engineers hand over each story to it before "done"; QA records findings in `specs/<version>/qa/`. You don't spawn a fresh QA per round — there is one.
 
-### Step 2: Validate
+### Red-button (see protocol below)
+If any engineer hits the unexpected or finds a story much larger/different than specified, it halts the team and reports options to you. You decide with the user; scope issues go to the live PO to re-refine.
 
-Once all tasks are complete (or after a fix round), spawn QA. **Always spawn a fresh QA agent** — never reuse from a previous validation round. Shut down the previous QA agent first if one exists. Adapt prompt based on workspace mode:
+## Phase 5 — Final Review & Human Validation
 
-**Single-repo:**
-```
-Agent({ subagent_type: "qa", team_name: "<version>",
-        name: "qa-validate-N",
-        prompt: "Base branch: <base_branch>.
-                 Enter worktree 'validate-<version>'.
-                 Run /validate-execution <version>.
-                 Version spec: <specs_prefix>/<version>.md.
-                 Definition of Done is the primary validation source.
-                 <If re-run: 'This is a re-validation after fixes. Focus only on previously failed test cases.'>" })
-```
+When all stories are done and QA's continuous findings are addressed:
 
-**Specs-first multi-repo (CWD is specs repo, code_repo is external):**
-```
-Agent({ subagent_type: "qa", team_name: "<version>",
-        name: "qa-validate-N",
-        prompt: "Base branch: <base_branch>.
-                 Code repository: <code_repo>
-                 Create a code worktree: git -C <code_repo> worktree add .claude/worktrees/validate-<version> -b worktree-validate-<version> <base_branch>
-                 Work from <code_repo>/.claude/worktrees/validate-<version> for all testing.
-                 Run /validate-execution <version>.
-                 Version spec: <specs_prefix>/<version>.md.
-                 Definition of Done is the primary validation source.
-                 Before reporting back: commit QA results, merge to <base_branch> in code repo (fast-forward only), remove code worktree, commit spec updates.
-                 <If re-run: 'This is a re-validation after fixes. Focus only on previously failed test cases.'>" })
-```
+1. **PO final review.** The live PO reviews the whole version against the spec/DoD and produces the **human-validation handoff** (what was built, how to run/see it, exactly what the human should verify, known limitations). The **PO owns this handoff — not QA.**
+2. Present the handoff to the user via `AskUserQuestion`.
+3. **If the user reports issues:** document them, dispatch a pool engineer to fix (back to Phase 4). Max 2 human fix cycles; if issues persist, ask the user: keep fixing, defer to next version, or accept as-is.
 
-**Code-first multi-repo (CWD is code repo, specs in external repo):**
-```
-Agent({ subagent_type: "qa", team_name: "<version>",
-        name: "qa-validate-N",
-        prompt: "Base branch: <base_branch>.
-                 Specs repo: <specs_repo>.
-                 Enter worktree 'validate-<version>'.
-                 Run /validate-execution <version>.
-                 Version spec: <specs_prefix>/<version>.md.
-                 Definition of Done is the primary validation source.
-                 Before reporting back: merge to <base_branch> (fast-forward only), commit QA results in specs repo.
-                 <If re-run: 'This is a re-validation after fixes. Focus only on previously failed test cases.'>" })
-```
+## Phase 6 — Ship
 
-### Step 3: Evaluate Results
+Once the human confirms:
+1. Update `specs/roadmap.md` (version shipped).
+2. Add a `## Shipped` section to `specs/<version>.md` (date, notes); record any `## Deferred to Next Version`.
+3. Commit final state. Shut the team down; `TeamDelete`.
+4. Suggest: "Run `/run-retrospective <version>` to capture lessons. Next: `<next>` from the roadmap."
 
-After validation completes, read the results:
+## Git Protocol
 
-- **Failures exist** → collect failure details → spawn `/execute-task` for each fix (back to Step 1, but only for fix tasks). Maximum 2 automated fix cycles.
-- **All automated checks pass** → QA has produced a Human Validation Guide. Present it to the user.
+**Before spawning any agent:** commit pending spec-workspace changes (worktrees and fresh reads only see committed HEAD). **BLOCKING:** verify the spec workspace's current-branch HEAD includes the previous phase's commit (`git log --oneline -1`) before proceeding. A missing commit means the previous phase didn't land — investigate, don't spawn.
 
-### Step 4: Human Validation
+**Spec workspace (no worktrees) — only you commit it.** Every role (architect, auditor, PO, engineers, QA) **writes files to the spec workspace but never runs git there.** You (the team lead) are the single committer: at each coordination point (before a spawn, on each report) you stage **only the relevant files** for that unit of work (`git add specs/<version>/logs/engineer-N.md specs/<version>/<story>.md specs/<version>/stories.md`) and commit — never `git add -A` while other roles may be mid-write. One committer is what makes the shared working tree safe without worktrees.
 
-Present the Human Validation Guide from `/validate-execution` to the user via `AskUserQuestion`:
-- What was built and how to run it
-- What to verify manually
-- Known limitations
+**Code workspace (worktrees):**
+- Engineers create a worktree per the setup-playbook, work there, then before reporting: clean history to one commit, rebase-first onto `code_branch`, `merge --ff-only`, remove the worktree. Each engineer lands exactly one commit on `code_branch`.
 
-If the user reports issues:
-1. Document findings in the relevant spec file
-2. Spawn `/execute-task` to fix (back to Step 1)
-3. Maximum 2 human fix cycles. If issues persist, ask user: continue fixing, defer to next version, or accept as-is.
+## Red-Button Protocol
 
-### Environment Failures
+Goal: no engineer struggles long on a surprise, and no story splits mid-flight.
 
-If QA reports environment issues instead of test failures:
-1. Stop all validation
-2. Spawn engineer to fix environment
-3. Verify fix, then resume validation
+1. **Trigger** — an engineer hits an unexpected blocker, or finds the story much larger/different than specified.
+2. **Halt** — it broadcasts a halt to the other engineers (`SendMessage`) and reports the challenge + options to you. **Engineers are halted, not killed** — paused until resolved.
+3. **Decide** — you bring the options to the **user**. If it's a scope/spec issue, bring the **live PO** back to re-refine the story (and check whether sibling stories need updating).
+4. **Resume** — engineers re-read `lessons.md` (PO has updated it) before continuing, so the same trap isn't hit twice.
 
-## Phase 4 — Ship
-
-Once the human confirms the version is good:
-
-1. Update `specs/roadmap.md` with version status (shipped)
-2. Add `## Shipped` section to `specs/<version>.md` with date and notes
-3. Update `PROGRESS.md` with final state
-4. If user deferred issues, document them under `## Deferred to Next Version`
-5. Shut down all agents. `TeamDelete` to clean up.
-6. Suggest: "Run `/run-retrospective <version>` to capture lessons learned. Next version: `<next>` from the roadmap."
-
-## Worktree & Agent Lifecycle Protocol
-
-### Base Branch
-
-All agents work relative to the `base_branch` recorded in Phase 0. **Every agent prompt MUST include the base branch.** Agents create worktrees from it, merge back to it, and compare against it. Never hardcode "main".
-
-### Before spawning any agent:
-- **Commit all pending changes on the base branch** in ALL repositories agents will work on. Run `git status` (and `git -C <code_repo> status` if applicable) and commit if needed before every `Agent()` call. Worktrees are created from HEAD — uncommitted files won't be visible.
-- **BLOCKING: Verify HEAD includes all prior phase commits.** Run `git log --oneline -1` on each repo's base branch and confirm the most recent merge from the previous phase is present. **Do NOT spawn the agent until this check passes.** If the expected commit is missing, investigate — the previous phase may not have merged correctly. This has caused agent failures in both V0.1 and V0.2 (agent enters worktree from stale HEAD, can't find files from previous phase).
-- **For specs-first multi-repo manual worktrees:** After `git worktree add`, check if `scripts/setup-worktree.sh` exists in the code repo and instruct the agent to run it. This script copies `.env` and other gitignored files that worktrees don't inherit. If the script doesn't exist, instruct the agent to copy `.env` files manually: `cp <code_repo>/.env* <worktree_path>/`.
-
-### Single-repo mode (specs and code in the same repo):
-Agent lifecycle: `EnterWorktree({ name })` → work → clean up commit history → `git checkout <base_branch> && git merge --ff-only worktree-<name>` → `ExitWorktree({ action: "remove" })` → `SendMessage` to team lead.
-
-### Specs-first multi-repo mode (CWD is specs repo, code_repo is external):
-Agents that modify code must create worktrees in the **code repository** using git commands — `EnterWorktree` only isolates the CWD repo (where specs live), not external repos.
-
-Agent prompt must include:
-```
-Base branch: <base_branch>
-Code repository: <absolute-path-to-code-repo>
-Create a worktree in the code repo before starting:
-  git -C <code_repo> worktree add .claude/worktrees/<name> -b worktree-<name> <base_branch>
-Work from <code_repo>/.claude/worktrees/<name> for all code changes.
-Before reporting back:
-  1. Clean up commit history (squash/rebase to minimal commits)
-  2. cd <code_repo> && git checkout <base_branch> && git pull --rebase && git merge --ff-only worktree-<name>
-  3. git worktree remove .claude/worktrees/<name>
-  4. Commit any spec changes directly (story status updates, execution logs)
-```
-
-Spec-only agents (architect, product-owner doing story breakdown) that don't modify code can use `EnterWorktree` as usual — they only write to the specs repo.
-
-### Code-first multi-repo mode (CWD is code repo, specs in external repo):
-Agents use `EnterWorktree` for code isolation (since CWD is the code repo). Spec changes are committed directly in the specs repo.
-
-Agent prompt must include:
-```
-Base branch: <base_branch>
-Specs repo: <absolute-path-to-specs-repo>
-Enter worktree '<name>' for code isolation.
-Before reporting back:
-  1. Clean up commit history (squash/rebase to minimal commits)
-  2. git checkout <base_branch> && git pull --rebase && git merge --ff-only worktree-<name>
-  3. ExitWorktree({ action: "remove" })
-  4. Commit spec changes in the specs repo (story status, execution logs)
-```
-
-### After each agent completes:
-- Changes are already on the base branch in all repos (agent merged before reporting)
-- Worktrees are already cleaned up
-- **Shut down** the agent immediately via `SendMessage({ to: "<agent-name>", message: { type: "shutdown_request" } })`
-
-Do NOT leave idle agents running between phases. Shut them down as soon as they report back.
-
-### Agent Reuse Policy — NEVER Reuse Agents
-
-**Every task MUST get a fresh agent.** Never send a new task to an existing agent, even if it's the same agent type. The orchestrator must:
-1. Shut down the previous agent (`SendMessage` with `shutdown_request`)
-2. Spawn a new agent with a unique name (e.g., `engineer-1`, `engineer-2`)
-3. Provide full context in the new agent's prompt — don't assume it has prior context
-
-This applies to ALL agents: engineers, designers, QA, architects, product-owners. No exceptions.
+In a 1-engineer (sequential) run this degrades to: halt → report → PO/user decide → resume.
 
 ## Key Principles
 
-1. **Simple cycle**: execute → validate → fix → repeat. That's it.
-2. **Definition of Done is the ship gate** — verified by automation, confirmed by human.
-3. **Incremental validation** — re-runs only test what failed, not everything.
-4. **Human ends the cycle** — no version ships without human sign-off.
-5. **Agent roles in `.claude/agents/`** — orchestrator provides context, not role definitions.
-6. **Merge early** — each completed task merges immediately.
-7. **Resume-friendly** — check existing state to pick up where left off.
-8. **One agent per task, always fresh** — NEVER reuse an agent for a different task. Kill the previous agent, spawn a new one. Every task = new agent instance with a unique name.
-9. **User chooses parallelism** — orchestrator recommends, user decides.
-10. **Base branch, not main** — use the branch the user is on, not hardcoded "main".
-11. **Clean commit history** — each agent merges exactly one commit into the base branch via fast-forward.
+1. **Two workspaces, one rule each** — spec workspace = shared, on-branch, git serialized through you; code = isolated worktrees, rebase-first.
+2. **Gate the DoD before building** — a fresh auditor, looping to the architect, is far cheaper than re-architecting after sign-off.
+3. **Keep the PO and QA alive** — context and continuous verification beat per-round restarts.
+4. **Engineers persist; verification stays independent** — the auditor, QA, PO, and human provide the independence, so engineers don't need to be churned.
+5. **Prepare context once** — playbook + `context.md` + `lessons.md`, committed up front; engineers read those, not the 61 KB architecture.
+6. **Halt early, never split live** — the red-button routes surprises through the PO and the user.
+7. **Human ends the cycle** — no version ships without sign-off.
+8. **Resume-friendly** — Phase 0 detects existing state and picks up where it left off.
