@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: spec-plugin v11] - 2026-06-06
+
+### Changed
+- Merge spec-plugin tuning F1–F12 + F14 alignment (v10); retire work-modes
+
 ## [Plugin: spec-plugin v9] - 2026-06-04
 
 ### Changed
