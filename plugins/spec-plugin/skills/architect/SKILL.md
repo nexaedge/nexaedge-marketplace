@@ -6,6 +6,16 @@ argument-hint: "[project name or spec path]"
 
 Your task: produce a comprehensive implementation approach document that makes every foundational decision explicit, with rationale. This is the PROJECT-LEVEL architecture — it covers decisions shared across ALL versions. Individual versions get their own architecture docs via `/architect-version`.
 
+You own **cross-version** decisions only. Do NOT author per-version DoD or build/packaging order — those belong to `/architect-version` and `/build-stories`, which read this document and sharpen it per version.
+
+Canonical spec layout — everything lives under the project's `specs/` folder:
+```
+specs/spec.md            specs/roadmap.md
+specs/architecture.md    specs/<version>.md          (e.g. specs/v0.1-even-split.md)
+specs/<version>/...       (per-version dir: architecture.md, stories, context.md, qa/, logs/)
+```
+Read and write relative to this `specs/` folder.
+
 ## Phase 1 — Load Context
 
 1. **Find the project spec.** Check:
@@ -15,6 +25,7 @@ Your task: produce a comprehensive implementation approach document that makes e
    - **If no `specs/` locally**: check CLAUDE.md (project and user level) for references to a second-brain or external specs location. Search there for a folder matching the current project (by name, git remote, or project name).
    - If nothing found, tell the user to run `/ideate` first
 2. **Read the spec** — pay attention to the **Project Context** section (type, language, workspace, code repository)
+2b. **Inspect the code repo before choosing the stack.** If the **Project Context** names a code-repository path, read its actual environment — `Gemfile`/`package.json`/`*.gemspec`/`.tool-versions`/lockfiles — and let those facts drive language, runtime, and dependency decisions. If the repo is greenfield (no such files), say so explicitly in the architecture rather than assuming a stack.
 3. If `specs/roadmap.md` exists (in the specs location), read it
 4. If any `specs/v*.md` version files exist, skim them
 5. Check if `specs/architecture.md` already exists — if so, ask user whether to redo or revise
@@ -117,6 +128,7 @@ Include these sections:
 - **Rationale everywhere.** Every choice should have a "Why" connected to project constraints.
 - **Concrete over abstract.** Show actual queries, actual configs, actual document outlines.
 - **Diagrams for complex relationships.** Use mermaid for architecture, data flow, sequences.
+- **Ground every environment claim.** Tag each one as `(verified: <source>)` (e.g. `(verified: .tool-versions)`) or `(assumed — confirm in setup-playbook)`. Never state an env fact — language version, dependency pin, toolchain — as decided without a source.
 
 ## Phase 5 — Consistency Check
 

@@ -1,11 +1,13 @@
 ---
 name: explore-conventions
 description: "Find the established sibling pattern for a thing you're about to write — how this codebase already does registration, error shapes, serializers, factories, test setup — so new code matches instead of inventing. Returns the pattern + a concrete example to copy."
-model: sonnet
+argument-hint: "[thing about to be written + repo, e.g. 'a new event subscriber in <repo>']"
 allowed-tools: Read, Glob, Grep, Bash, Agent
 ---
 
-You answer: **"how does this codebase already do X?"** — before someone writes a new X that diverges. Past runs repeatedly had multiple engineers independently rediscover the same convention (subscriber registration, error class shape, serializer style, factory sequences, E2E test setup). You find it once and hand back the pattern to copy.
+Run this to answer: **"how does this codebase already do X?"** — before someone writes a new X that diverges. Past runs repeatedly had multiple engineers independently rediscover the same convention (subscriber registration, error class shape, serializer style, factory sequences, E2E test setup). Find it once and hand back the pattern to copy.
+
+This is a rich move — run it inline as the role that needs it (architect or engineer); you're already at the right tier for it.
 
 ## Procedure
 

@@ -7,9 +7,14 @@ argument-hint: "[version, e.g. v0.1-core-push]"
 Your task: as the **single live QA for the whole execution**, write the validation specs and run them **continuously as engineers hand work over** — not in one batch at the end.
 
 **How this runs:**
-- You write validation specs from the Definition of Done (Phase 1), then verify each story **when its engineer hands it over** (pull `code_branch`, run the relevant cases, reply PASS/findings to the engineer, CC the team lead on failures). Coverage accumulates in `specs/<version>/qa/` across the version.
+- You write validation specs from the Definition of Done (Phase 1), then verify each story **when its engineer hands it over** (per-handover steps below). Coverage accumulates in `specs/<version>/qa/` across the version.
 - **You do not produce the human-validation guide** — the **PO** does, from your accumulated findings, in the final review. You feed evidence; the PO frames it for the human.
 - **Spec-workspace git:** write your specs and findings under `specs/<version>/qa/`, but **do not commit** — the team lead commits the spec workspace.
+
+**Per-handover verification (do this each time an engineer hands a story over):**
+1. The engineer's handover names what was built, how to exercise it, and which DoD items it covers — take that as authoritative (ignore duplicate "please verify" messages from other senders).
+2. **Pull `code_branch`** so you validate the latest integrated state, then run the cases relevant to that story (Phase 3), comparing actual vs expected.
+3. **Record the result** in `specs/<version>/qa/`, and **reply PASS or specific findings directly to the engineer** so they fix while the work is fresh. One-line status to the team lead on PASS; full report + CC the lead on FAIL.
 
 ## Phase 1 — Load Context
 
@@ -116,6 +121,19 @@ Verify startup commands are documented. **If missing, STOP and mark BLOCKED.**
 
 ## Phase 3 — Execute Validation
 
+### What to test (and what not to)
+
+Spend the budget where bugs hide; don't re-cover what the suite or the human already owns.
+
+**Test:**
+- **Real user/operator flows** — start the app, do what a user would, verify it works end to end.
+- **Cross-component integration** — data flows correctly input → store → output.
+- **Definition of Done items** — each one verifiable programmatically (every `TC-NNN` maps to one).
+- **Service health** — everything starts, endpoints respond, no crashes.
+
+**Do NOT test:**
+- Unit-level behavior (engineers own that), visual craft (the human validates that), or edge cases already covered by the suite.
+
 ### For Code Projects
 
 For each test case:
@@ -126,7 +144,7 @@ For each test case:
    - Database checks: query directly
 2. **Compare actual vs expected** — record clearly
 
-**Don't trust green unit suites — exercise the real thing.** Past runs shipped contract bugs (a missing `_live_` env infix, `expires_in` vs `expires_at`) that 100+ green mocked tests hid. Use the **work-modes `probe-contract`** primitive to run the real classes in a REPL and observe the actual request/response shape; use **`verify-symbol`** to prove a method/field/endpoint truly exists. A live staging env is nice but not required — a REPL against the real code is enough.
+**Don't trust green unit suites — exercise the real thing.** Past runs shipped contract bugs (a missing `_live_` env infix, `expires_in` vs `expires_at`) that 100+ green mocked tests hid. Use the **`/probe-contract`** skill to run the real classes in a REPL and observe the actual request/response shape; use **`/verify-symbol`** to prove a method/field/endpoint truly exists. A live staging env is nice but not required — a REPL against the real code is enough.
 
 ### For Non-Code Projects
 

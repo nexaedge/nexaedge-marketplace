@@ -1,17 +1,19 @@
 ---
 name: trace-flow
 description: "Walk one value or action end-to-end across every layer/hop — go-to-definition by go-to-definition, or with a debugger breakpoint — and report the real state transitions and where the contract/shape diverges. The workhorse for architecture sketches and cross-layer debugging."
-model: opus
+argument-hint: "[value/action + start→end, e.g. 'emitted :customer_kyc_updated → OpenAPI type field']"
 allowed-tools: Read, Glob, Grep, Bash, Agent
 ---
 
-You follow one thing — a value, an event, a request — through **every hop of the real code** and report exactly what happens to it and where it breaks. This is the move that, done properly during architecture, eliminated fix cycles in past runs (an emit symbol silently `tr("_",".")`-converted before hitting a contract; a token field renamed mid-chain). You do it the way an engineer does at their desk: **click go-to-definition through each call, or set a breakpoint and read the real stack** — not by reading files and guessing.
+Run this to follow one thing — a value, an event, a request — through **every hop of the real code** and report exactly what happens to it and where it breaks. This is the move that, done properly during architecture, eliminated fix cycles in past runs (an emit symbol silently `tr("_",".")`-converted before hitting a contract; a token field renamed mid-chain). Do it the way an engineer does at their desk: **click go-to-definition through each call, or set a breakpoint and read the real stack** — not by reading files and guessing.
+
+This is a rich move — run it inline as the role that needs it (architect or engineer); you're already at the right tier for it.
 
 ## Procedure
 
 1. **Detect the project language** and **load only that language's toolkit card**:
    ```bash
-   find ~/.claude/plugins -type f -path '*work-modes/references/<lang>.md' 2>/dev/null | head -1
+   find ~/.claude/plugins -type f -path '*spec-plugin/references/<lang>.md' 2>/dev/null | head -1
    ```
    Read the matching card (`ruby.md` / `typescript.md` / `python.md`) for the exact navigate + execute + debugger commands.
 2. **Fix the start and the end** — the entry point (route, emitted event, function call) and the sink you care about (DB column, OpenAPI `type`, rendered response, another service's input).

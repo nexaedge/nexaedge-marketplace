@@ -35,7 +35,7 @@ bin/rails runner 'PaymentGateway.define_method(:charge){|*| {status:"approved"} 
 ```
 Interactive REPL via tmux (persistent state):
 ```bash
-SOCK=/tmp/work-modes/rb.sock
+SOCK=/tmp/probe/rb.sock
 tmux -S "$SOCK" new-session -d -s con -x 220 -y 50
 tmux -S "$SOCK" send-keys -t con 'bin/rails console' Enter
 # poll `capture-pane` until the prompt appears, then send lines; state persists
@@ -48,7 +48,7 @@ tmux -S "$SOCK" kill-server
 
 `rdbg` output needs a real PTY → drive it via tmux.
 ```bash
-SOCK=/tmp/work-modes/dbg.sock
+SOCK=/tmp/probe/dbg.sock
 tmux -S "$SOCK" new-session -d -s dbg -x 200 -y 50
 tmux -S "$SOCK" send-keys -t dbg 'rdbg bin/rails -- runner script.rb' Enter
 # then: b Klass#meth (breakpoint) → c (continue) → bt (backtrace) → info (locals+ivars+%self) → p EXPR

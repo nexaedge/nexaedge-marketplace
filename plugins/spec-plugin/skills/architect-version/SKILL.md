@@ -43,10 +43,10 @@ Pay special attention to **"Simplified in this version"** from the version spec 
 
 ### Ground every sketch in reality (this is what eliminates fix cycles)
 
-Do **not** write code sketches against assumed APIs. The biggest source of downstream rework is an architecture that references a method/field/endpoint that doesn't exist, or a transformation that silently changes a value. Before you commit a decision, verify it against the real code using the **work-modes** primitives (dispatch them as agents, or apply their technique inline):
+Do **not** write code sketches against assumed APIs. The biggest source of downstream rework is an architecture that references a method/field/endpoint that doesn't exist, or a transformation that silently changes a value. Before you commit a decision, verify it against the real code by running the primitive skills inline (you run at opus — the right tier for these), or dispatch the cheap mechanical `/verify-symbol` to the **intern**:
 
-- **`verify-symbol`** — for every external method/field/endpoint/flag your sketch relies on, confirm it exists and get its real signature (don't assume `partner.slug` or `CreditOffer.find_by_offer`).
-- **`trace-flow`** — for every cross-layer transformation in your design or DoD, trace the value end-to-end and note where its shape changes (the emit-symbol-`tr`-to-contract class of bug).
+- **`/verify-symbol`** — for every external method/field/endpoint/flag your sketch relies on, confirm it exists and get its real signature (don't assume `partner.slug` or `CreditOffer.find_by_offer`).
+- **`/trace-flow`** — for every cross-layer transformation in your design or DoD, trace the value end-to-end and note where its shape changes (the emit-symbol-`tr`-to-contract class of bug).
 
 When the V0.4 architect did exactly this, the version passed QA 11/11 on the first try with zero fix cycles.
 
@@ -74,6 +74,16 @@ The architecture doc must contain an explicit **`## Definition of Done`** — co
 
 For non-code projects the same applies: criteria must assert the deliverable *does its job*, not merely that a file exists.
 
+### Build & Packaging Order is a first-class output (don't make the PO discover it by probing)
+
+The architecture has the facts (what files exist, what the toolchain is) but the **ordering implications** are usually left implicit, so build-stories and the PO rediscover them by trial. Make them explicit in a **`## Build & Packaging Order`** section:
+
+- **Artifact co-location constraints** — "X must ship in the same increment as Y because Z evaluates Y at build/install time." (E.g. a version constant must co-ship with the manifest the packager evaluates at install; the package can't build until an entrypoint dir exists.)
+- **DoD items blocked until a prerequisite artifact exists** — call out which DoD items can't even be attempted until an earlier artifact is in place.
+- **A recommended DoD→increment ordering** — a concrete starting order for build-stories, mapping DoD items to the increment that first makes them satisfiable. This is a recommendation build-stories validates against the real toolchain, not a frozen plan.
+
+This applies to non-code projects too: if a deliverable can only be produced once an upstream artifact exists, state the ordering.
+
 ### For Code Projects
 
 1. **Overview** — What this version delivers, scope boundaries
@@ -82,16 +92,17 @@ For non-code projects the same applies: criteria must assert the deliverable *do
 4. **API Contracts** — Endpoints, request/response shapes, error codes
 5. **Component Breakdown** — Each component: responsibility, inputs, outputs
 6. **Integration Points** — Connections to existing and future work
-7. **Test Strategy** — Testing approach by complexity tier:
+7. **Build & Packaging Order** — artifact co-location constraints, DoD items blocked until a prerequisite artifact exists, and a recommended DoD→increment ordering for build-stories (see callout above)
+8. **Test Strategy** — Testing approach by complexity tier:
    - Core/complex logic: thorough unit tests
    - Key components: at least one test pass
    - Simple glue: tested implicitly
    - Integration and E2E tests
    - Test infrastructure (fixtures, mocking)
-8. **Flow Diagrams** — Mermaid diagrams for data flows, sequences
-9. **State Machines** — Mermaid state diagrams for stateful processes
-10. **Definition of Done (testable)** — concrete, behavior-based, falsifiable acceptance criteria (see callout above; this is what the auditor gates)
-11. **Constraints & Assumptions**
+9. **Flow Diagrams** — Mermaid diagrams for data flows, sequences
+10. **State Machines** — Mermaid state diagrams for stateful processes
+11. **Definition of Done (testable)** — concrete, behavior-based, falsifiable acceptance criteria (see callout above; this is what the auditor gates)
+12. **Constraints & Assumptions**
 
 ### For Non-Code Projects
 
@@ -121,4 +132,8 @@ Present a summary:
 - Key risks or open questions
 - The **Definition of Done** you wrote — flag that it goes to the independent auditor next
 
-Report back to the team lead (write the doc; the lead commits it). If the auditor later returns gaps, revise the DoD/architecture to address each finding and report for a re-gate — iterate until it passes.
+Report back to the team lead (write the doc; the lead commits it).
+
+### DoD-gate loop
+
+If the team lead returns **auditor findings**, the DoD measured the wrong thing somewhere. Revise the architecture/DoD to address **each finding specifically** — strengthen the items that a trivial implementation could have passed — write the update, and report back. A new fresh auditor re-gates each round; iterate until it passes.
