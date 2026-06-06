@@ -1,9 +1,0 @@
-{
-  "name": "work-modes",
-  "version": "v1",
-  "description": "Reusable, model-tiered work primitives for any workflow — verify-symbol, trace-flow, probe-contract, explore-conventions, setup-env. Each is a segregated agent that does the work the short way (LSP, debuggers, REPLs) instead of grep-spelunking.",
-  "author": {
-    "name": "Jaison Erick",
-    "url": "https://github.com/jaisonerick"
-  }
-}

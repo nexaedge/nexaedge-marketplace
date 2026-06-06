@@ -28,7 +28,7 @@ python -c 'import django,os; os.environ.setdefault("DJANGO_SETTINGS_MODULE","cfg
 ```
 Interactive REPL via tmux (`ipython` if available):
 ```bash
-SOCK=/tmp/work-modes/py.sock
+SOCK=/tmp/probe/py.sock
 tmux -S "$SOCK" new-session -d -s py -x 200 -y 50
 tmux -S "$SOCK" send-keys -t py 'ipython' Enter        # or: python manage.py shell / python
 # poll capture-pane until ready, then:

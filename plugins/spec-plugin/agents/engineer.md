@@ -25,33 +25,15 @@ Per story, read only:
 
 Only open the full `architecture.md` if the story explicitly sends you there.
 
+## How you work
+
+- **Test-first.** Write tests alongside the implementation; for fixes, failing test → minimal fix → green → no regressions.
+- **Ship on the first pass.** Read before writing, follow existing conventions, don't over-engineer.
+- **Stay in scope.** Verify every acceptance criterion; don't gold-plate.
+- **Flag surprises early.** If you hit an unexpected blocker, or the story is much larger or different than specified, hit the red-button — don't grind and don't split the story yourself. (The full halt protocol is in `/execute-task`.)
+
 ## Execute
 
-Run `/execute-task <story-path>`. Read before writing, follow existing conventions, don't over-engineer, stay in scope, and verify every acceptance criterion. Test-first for fixes (failing test → minimal fix → green → no regressions).
-
-### Hand over to live QA before declaring done
-There is **one live QA** for the whole execution. Before you mark a story done, hand it to QA (`SendMessage` to the QA instance): what you built, how to exercise it, which DoD items it covers. Address QA's findings while the work is fresh. This continuous handover replaces a big end-of-version QA gate.
-
-### Red-button — flag surprises early, don't grind
-If you hit an **unexpected blocker**, or find the story is **much larger or different than specified**, do **not** push on for a long time and do **not** split the story yourself:
-1. **Broadcast a halt** to the other engineers (`SendMessage`) so they don't hit the same wall.
-2. **Report to the team lead**: the challenge, what you've found, and 2–3 concrete options.
-3. Wait. The lead decides with the user; scope/spec issues go to the live PO to re-refine. When told to resume, **re-read `lessons.md`** first.
-
-## Per-engineer log
-Append your running learnings to **`specs/<version>/logs/engineer-<N>.md`** (your own file — the lead told you your number). Capture: surprises, under-specified spots, setup gotchas, decisions. The PO consolidates these into `lessons.md` for everyone. Write the file; do not git it.
-
-## Before reporting back
-1. **Code workspace:** squash to one clean commit, rebase-first onto `code_branch`, `git merge --ff-only`, then remove your worktree. Land exactly one commit on `code_branch`.
-   ```bash
-   git log --oneline <code_branch>..HEAD      # in the worktree
-   git reset --soft <code_branch> && git commit -m "feat: <what you built>"
-   git checkout <code_branch> && git pull --rebase
-   git merge --ff-only worktree-<name> || { git checkout worktree-<name>; git rebase <code_branch>; # re-run gates; retry merge
-   }
-   git worktree remove <worktree-path>
-   ```
-2. **Spec workspace:** write your `## Execution Log` into the story file, set the story's status in `stories.md`, append to `logs/engineer-<N>.md`. **Do not commit** — the lead does.
-3. **Report** to the team lead via `SendMessage`: what you built, test results (pass/fail counts), learnings, anything under-specified, and whether you're free for the next story.
+Run `/execute-task <story-path>`. It carries the full playbook: worktree setup, red-button, the primitive skills (`/verify-symbol`, `/explore-conventions`, `/probe-contract`, `/trace-flow`), live-QA handover, the code-workspace merge protocol (squash → rebase-first → `merge --ff-only` → `worktree remove --force`), and your per-engineer log.
 
 Then await your next assignment — stay alive.

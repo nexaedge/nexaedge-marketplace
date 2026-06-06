@@ -14,7 +14,7 @@ You are a team lead. You take a version from spec to shipped deliverables by coo
 ```
 architect-version → [ DoD gate → architect fix ]*        (loop until the DoD is sound)
   → build-stories  (PO; stays live)
-  → PREP           (setup-playbook · context.md · lessons.md — committed before any engineer spawns)
+  → PREP           (setup-playbook · context.md · lessons.md · logs/ — committed before any engineer spawns)
   → [ execute story → hand over to live QA ]*            (engineers; red-button halt/resume)
   → PO reviews all work against the spec → human validation
   → human signs off → ship
@@ -39,14 +39,23 @@ If the project has no code workspace (pure docs/research), there is only the spe
 | `engineer` | **session pool** | Persistent workers. Halted/resumed on red-button, **never killed mid-session**. Carry context across stories. |
 | `qa` | **whole execution** | One live QA. Engineers hand over to it continuously, before a story is "done." |
 | `designer` | per design story | Unchanged role; code-worktree policy. |
+| `intern` | ad hoc, one-shot | Haiku worker for cheap, mechanical skills (`/verify-symbol`, `/setup-env`) dispatched when you want them cheap. |
 
 Independence is preserved without churning agents: the **auditor** is fresh, **QA** never wrote the code it checks, the **PO** reviews against the spec, and the **human** validates. Engineers can therefore persist and cut the per-story restart tax.
 
 Spawn agents with definitions from `agents/` as `subagent_type`:
 ```
 Agent({ subagent_type: "<role>", team_name: "<version>", name: "<instance>",
-        prompt: "<workspace paths, base branches, what to do, why, context>" })
+        prompt: "<teammate spawn preamble> + <workspace paths, base branches, what to do, why, context>" })
 ```
+
+### Teammate spawn preamble (include in EVERY teammate spawn prompt)
+
+You are the protocol authority. Inject this verbatim block into the prompt of **every** teammate you spawn (engineer, QA, PO, architect, auditor, designer) so the team-coordination facts are stated once, by you:
+
+> **Team coordination protocol:**
+> - Address teammates by their **bare name** via `SendMessage` (`team-lead`, `qa-1`, `engineer-1`). **Never** suffix the team — `team-lead@v0.1` is rejected.
+> - Shutdown handshakes (`shutdown_request` / `shutdown_response`) route to **`team-lead`**, even if a different teammate sent you the request.
 
 ## Phase 0 — Detect Workspaces & Select Version
 
@@ -60,7 +69,7 @@ Agent({ subagent_type: "<role>", team_name: "<version>", name: "<instance>",
 
 **Skip if `architecture.md` exists and the user confirms resume.**
 
-Spawn `architect` to run `/architect-version <version>`. The architect works on the **spec workspace, current branch, no worktree**; it writes `architecture.md` and reports — **you commit it** (Git Protocol). On completion, notify the user with key decisions. Keep the architect addressable — the gate may send it back.
+Spawn `architect` to run `/architect-version <version>`. Prepend the **teammate spawn preamble** (Roles & Lifecycle) to its prompt, as for every teammate. The architect works on the **spec workspace, current branch, no worktree**; it writes `architecture.md` and reports — **you commit it** (Git Protocol). On completion, notify the user with key decisions. Keep the architect addressable — the gate may send it back.
 
 ## Phase 2 — DoD Gate (independent)
 
@@ -80,28 +89,33 @@ Spawn a **fresh** `auditor` (no prior context) to audit the version's DoD in `sp
 3. **PREP — write the session scaffolding and commit it before any engineer spawns** (engineers read these from the spec workspace branch, so they must exist there first):
    - **setup-playbook** (`specs/<version>/setup-playbook.md`) — spawn a recon step (an `engineer` is fine) to inspect `code_repo` and document exactly how to spin up a code worktree for *this* repo: branch base, how to copy `.env`/gitignored files, dependency install, how to run gates/tests, known toolchain gotchas. **Seed it from the previous version's playbook if one exists** (a diff, not a rewrite). **Confirm completeness with the user** before execution.
    - **`context.md`** — produced by the PO in step 1.
-   - **`lessons.md`** — create it empty (PO owns it; engineers feed it via their own logs).
-   - Commit all three to the spec workspace branch.
+   - **`lessons.md`** — **you** create it empty here (the PO owns its *content*; engineers feed it via their own logs). Creating the file is the lead's job, not build-stories'.
+   - **`logs/`** — **you** create the empty `specs/<version>/logs/` directory here, so engineers have a place to write `engineer-N.md`.
+   - Commit all of it to the spec workspace branch.
 
 ## Phase 4 — Execute & Validate
 
 The core loop. Engineers build in code worktrees; one live QA verifies continuously.
 
 ### Team composition — ask the user
-Analyze the dependency graph in `stories.md` for parallelism. Present via `AskUserQuestion`: graph, parallel tracks, suggested size (1 sequential / 2 recommended / 3 max). Code+UI stories use a `designer`. Then **spawn the engineer pool and the single live QA**.
+Analyze the dependency graph in `stories.md` for parallelism. Present via `AskUserQuestion`: graph, parallel tracks, suggested size (1 sequential / 2 recommended / 3 max). Code+UI stories use a `designer`. Then **spawn the engineer pool and the single live QA** — include the **teammate spawn preamble** (see Roles & Lifecycle) in every spawn prompt.
 
 ### Model tiers
-Each role carries a default model (`architect`/`auditor`/`product-owner` → opus; `engineer`/`designer`/`qa` → sonnet). **Override per story when it pays:** spawn an engineer at `haiku` for a trivial/mechanical story, or `opus` for a gnarly algorithmic one (`Agent({ subagent_type, model })`). Roles also dispatch the **work-modes** primitives (`verify-symbol`@haiku, `trace-flow`@opus, `probe-contract`@sonnet, `explore-conventions`@sonnet, `setup-env`@haiku) for the right sub-task at the right tier — the architect and engineers should use `verify-symbol`/`trace-flow` to ground work in the real code.
+Each role carries a default model (`architect`/`auditor`/`product-owner` → opus; `engineer`/`designer`/`qa` → sonnet; `intern` → haiku). **Override per story when it pays:** spawn an engineer at `haiku` for a trivial/mechanical story, or `opus` for a gnarly algorithmic one (`Agent({ subagent_type, model })`). The primitive **skills** (`/verify-symbol`, `/trace-flow`, `/probe-contract`, `/explore-conventions`, `/setup-env`) run **inline** by the role that needs them — the architect@opus runs `/trace-flow`, the engineer@sonnet runs `/probe-contract` and `/explore-conventions` — so each move already runs at that role's tier. The cheap, mechanical ones (`/verify-symbol`, `/setup-env`) can instead be **dispatched to the `intern`** (a haiku worker) when you want them cheap.
 
 ### Dispatch loop — until all stories are done
 1. Find unblocked stories. Match `subagent_type` to the story's `Agent` field.
 2. **Assign to a pool engineer.** An engineer takes a story, finishes it, then takes the next — it is **not** killed between stories (that's the point). Match each story to a free engineer.
-3. The engineer (per `/execute-task`): creates a **code worktree** per the setup-playbook, reads **its story + `context.md` + `lessons.md`** (not the full architecture), builds, **hands over to the live QA** before declaring done, and writes its learnings to **`logs/engineer-N.md`** in the spec workspace.
-4. **On report-back:** the engineer has already merged its code (rebase-first) into `code_branch` and removed its code worktree. **You commit its spec-workspace files** (`logs/engineer-N.md`, the story's `## Execution Log`, `stories.md` status) — see Git Protocol. Then update progress.
+3. The engineer (per `/execute-task`): creates a **code worktree** per the setup-playbook, reads **its story + `context.md` + `lessons.md`** (not the full architecture), builds, **hands over directly to the live QA** before declaring done, and writes its learnings to **`logs/engineer-N.md`** in the spec workspace. The clearance is **peer-to-peer**: the engineer messages QA, QA's **PASS reply to the engineer IS the clearance**, and the engineer proceeds to its next story on its own. You do **not** relay or re-confirm the handover — you are CC'd only on a QA failure.
+4. **On report-back:** the engineer has already merged its code (rebase-first) into `code_branch` and removed its code worktree. Your job on report-back is solely to **commit its spec-workspace files** (`logs/engineer-N.md`, the story's `## Execution Log`, `stories.md` status) — see Git Protocol — and update progress. You do not broker the QA clearance.
 5. **Forward the engineer's report to the live PO** (what was done, learnings, anything under-specified). The PO consolidates into `lessons.md`, re-refines upcoming stories if needed, and tells you which engineers should re-read `lessons.md`.
 
 ### Continuous QA
 QA runs the whole time. Engineers hand over each story to it before "done"; QA records findings in `specs/<version>/qa/`. You don't spawn a fresh QA per round — there is one.
+
+**Clearance is peer-to-peer.** The engineer hands over directly to QA, and QA's PASS reply to the engineer **is** the clearance — the engineer then proceeds to its next story on its own. You do **not** relay or re-confirm handovers. QA CCs **you only on a failure**; on report-back your only QA-related job is to forward the engineer's learnings to the PO.
+
+**Don't hardcode verification commands in the QA spawn prompt.** Point QA at the **version DoD** and let `/validate-execution` derive the test cases (`TC→DoD`) itself. You may pass *gotchas to watch* — not a full command script.
 
 ### Red-button (see protocol below)
 If any engineer hits the unexpected or finds a story much larger/different than specified, it halts the team and reports options to you. You decide with the user; scope issues go to the live PO to re-refine.
@@ -110,17 +124,19 @@ If any engineer hits the unexpected or finds a story much larger/different than 
 
 When all stories are done and QA's continuous findings are addressed:
 
-1. **PO final review.** The live PO reviews the whole version against the spec/DoD and produces the **human-validation handoff** (what was built, how to run/see it, exactly what the human should verify, known limitations). The **PO owns this handoff — not QA.**
-2. Present the handoff to the user via `AskUserQuestion`.
-3. **If the user reports issues:** document them, dispatch a pool engineer to fix (back to Phase 4). Max 2 human fix cycles; if issues persist, ask the user: keep fixing, defer to next version, or accept as-is.
+1. **Trigger the PO (Phase 5.1).** Send the live PO an explicit **"begin final review"** message listing the completed stories + their QA state. This is the single deterministic trigger — the PO does not poll or self-trigger; it waits for this message.
+2. **PO final review.** The live PO reviews the whole version against the spec/DoD and produces the **human-validation handoff** (what was built, how to run/see it, exactly what the human should verify, known limitations). The **PO owns this handoff — not QA.**
+3. Present the handoff to the user via `AskUserQuestion`.
+4. **If the user reports issues:** document them, dispatch a pool engineer to fix (back to Phase 4). Max 2 human fix cycles; if issues persist, ask the user: keep fixing, defer to next version, or accept as-is.
 
 ## Phase 6 — Ship
 
 Once the human confirms:
 1. Update `specs/roadmap.md` (version shipped).
 2. Add a `## Shipped` section to `specs/<version>.md` (date, notes); record any `## Deferred to Next Version`.
-3. Commit final state. Shut the team down; `TeamDelete`.
-4. Suggest: "Run `/run-retrospective <version>` to capture lessons. Next: `<next>` from the roadmap."
+3. Commit final state.
+4. **Shut the team down in order:** send `shutdown_request` to **each** teammate and **wait for its confirmation** before calling `TeamDelete` — `TeamDelete` refuses while any member is still active.
+5. Suggest the next step: "Next: `<next>` from the roadmap."
 
 ## Git Protocol
 

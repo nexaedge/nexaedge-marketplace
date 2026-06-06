@@ -48,11 +48,13 @@ Before producing any output:
 
 This early-flag discipline is what prevents mid-flight story splits.
 
-**Do it the short way — use the work-modes primitives** (dispatch them as agents, or apply their technique) instead of grep-spelunking:
-- **`explore-conventions`** before writing a new <thing> (controller, subscriber, error, factory, test) — match the codebase's established pattern instead of inventing one.
-- **`verify-symbol`** before calling any method/field/endpoint you didn't write — confirm it exists and get its real signature.
-- **`probe-contract`** to see how something actually behaves (run it in a REPL) instead of guessing from the source.
-- **`trace-flow`** when a value crosses layers and you need to know exactly what happens to it.
+**Do it the short way — run the primitive skills inline** when you hit that kind of work, instead of grep-spelunking:
+- **`/explore-conventions`** before writing a new <thing> (controller, subscriber, error, factory, test) — match the codebase's established pattern instead of inventing one.
+- **`/verify-symbol`** before calling any method/field/endpoint you didn't write — confirm it exists and get its real signature.
+- **`/probe-contract`** to see how something actually behaves (run it in a REPL) instead of guessing from the source.
+- **`/trace-flow`** when a value crosses layers and you need to know exactly what happens to it.
+
+Run these inline by default — you're already at the right tier for them. The cheap mechanical ones (`/verify-symbol`, `/setup-env`) may be dispatched to the **intern** (haiku) when you want them cheap; the richer moves stay inline.
 
 ## Phase 3 — Execute
 
@@ -128,6 +130,23 @@ For non-code projects, verification is criteria-based:
 3. For non-code: re-read deliverable against criteria, verify references and links
 4. **Integration check** — verify the output connects properly to what exists
 5. **Hand over to the live QA before declaring done.** There is one QA agent for the whole execution. `SendMessage` it: what you built, how to exercise it, and which Definition-of-Done items it covers. Address QA's findings now, while the work is fresh — don't defer them to an end-of-version gate.
+
+**Reference the integration checkout, never your worktree.** When you author or revise an acceptance criterion (e.g. on a fix task) or tell QA which path/branch to exercise, name the **integration checkout / `code_branch`** — never your per-story worktree path. Your worktree is deleted after merge, so any criterion or instruction that points at it is stale before QA runs.
+
+### Merge the code workspace (before reporting back)
+
+Once QA clears, land exactly one clean commit on `code_branch` and tear down your worktree. Squash → rebase-first → `git merge --ff-only` → `git worktree remove --force`:
+
+```bash
+git log --oneline <code_branch>..HEAD      # in the worktree
+git reset --soft <code_branch> && git commit -m "feat: <what you built>"
+git checkout <code_branch> && git pull --rebase
+git merge --ff-only worktree-<name> || { git checkout worktree-<name>; git rebase <code_branch>; # re-run gates; retry merge
+}
+git worktree remove --force <worktree-path>   # --force: test/coverage tools (SimpleCov, jest --coverage, pytest) leave untracked artifacts at the worktree root that block a plain remove
+```
+
+This is the **only git you run** — it's in the code worktree. Never run git in the spec workspace; the team lead commits that (single-committer rule).
 
 ## Phase 6 — Update Task File
 

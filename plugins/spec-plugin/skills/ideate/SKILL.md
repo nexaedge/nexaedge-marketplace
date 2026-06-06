@@ -70,13 +70,24 @@ Adapt questions based on answers — skip what's already clear, dig deeper where
 
 ## Phase 3 — Determine Spec Location
 
-Based on what you've learned, decide where the spec goes:
+Specs always live under the project's `specs/` folder. Phase 3 only decides **which** project folder — the layout inside it is canonical:
 
-- **Code repo with external specs location found** (e.g., second-brain): write specs there, in the project's folder. Include the code repo path in the Project Context so downstream skills know where to find the code.
-- **Code repo with no existing specs and no external location:** create `specs/<project-name>.md` at the repo root
-- **Code repo with existing specs:** add to existing `specs/` directory
-- **Organized workspace:** place specs where the project lives (e.g., `clients/acme/billing-project/specs/spec.md`)
-- **Empty directory:** create `specs/<project-name>.md` — this directory IS the project
+Canonical spec layout — everything lives under the project's `specs/` folder:
+```
+specs/spec.md            specs/roadmap.md
+specs/architecture.md    specs/<version>.md          (e.g. specs/v0.1-even-split.md)
+specs/<version>/...       (per-version dir: architecture.md, stories, context.md, qa/, logs/)
+```
+
+Based on what you've learned, decide where the project folder is:
+
+- **Code repo with external specs location found** (e.g., second-brain): write to the project's folder there, at `<project>/specs/spec.md`. Include the code repo path in the Project Context so downstream skills know where to find the code.
+- **Code repo with no existing specs and no external location:** create `specs/spec.md` at the repo root
+- **Code repo with existing specs:** add to the existing `specs/` directory (`specs/spec.md`)
+- **Organized workspace:** place specs where the project lives, e.g. `clients/acme/billing-project/specs/spec.md`
+- **Empty directory:** create `specs/spec.md` — this directory IS the project
+
+In every case the spec file is `<project>/specs/spec.md` and downstream artifacts follow the canonical layout above.
 
 If uncertain, ask the user: "Where should I save the spec? Here's what I'm thinking: [path]. Does that work?"
 

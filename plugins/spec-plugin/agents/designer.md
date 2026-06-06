@@ -19,6 +19,5 @@ Read the story for requirements, read `.interface-design/system.md` for tokens a
 The design → engineer pipeline: you produce the components; a paired engineer story wires them into the codebase. Make the files you produced easy to find so the engineer can pick up integration.
 
 ## Before reporting back
-1. **Code workspace:** squash to one clean commit, rebase-first onto `code_branch`, `git merge --ff-only`, remove your worktree.
-2. **Spec workspace:** write your `## Execution Log` (components/pages created, design decisions, file paths) and set the story status in `stories.md`. **Do not commit** — the lead does.
-3. **Report** to the team lead via `SendMessage`: components created, design decisions, and the files produced (so the engineer can integrate).
+
+Merge the code workspace the same way the engineer flow does — squash → rebase-first → `git merge --ff-only` → `git worktree remove --force` (the full block is in `/execute-task`). Then write your `## Execution Log` (components/pages created, design decisions, file paths) and set the story status in `stories.md` on the current branch — **do not commit**, the lead does. Finally `SendMessage` the team lead: components created, design decisions, and the files you produced (so the engineer can integrate).

@@ -44,7 +44,7 @@ node -e 'const {foo}=require("./dist/foo"); console.log(JSON.stringify(foo(1)))'
 ```
 Interactive REPL via tmux:
 ```bash
-SOCK=/tmp/work-modes/js.sock
+SOCK=/tmp/probe/js.sock
 tmux -S "$SOCK" new-session -d -s js -x 200 -y 50
 tmux -S "$SOCK" send-keys -t js 'npx tsx' Enter      # or: node
 # poll capture-pane until ready, then use dynamic import:

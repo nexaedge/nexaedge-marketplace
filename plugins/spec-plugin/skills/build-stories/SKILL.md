@@ -21,7 +21,7 @@ Pay special attention to the version spec's **Definition of Done** — the final
 
 ## Phase 2 — Decompose into Stories
 
-Break the version into stories following these principles:
+Break the version into stories following these principles. **Read the codebase before decomposing**, and use **`AskUserQuestion`** for the sizing/grouping/ordering calls that genuinely have alternatives — don't guess where the user can decide.
 
 ### Sizing for AI Agents (NOT human teams)
 - **Optimize for AI agent context window**: each story must be completable without overwhelming the agent
@@ -73,6 +73,8 @@ Each story should include clear acceptance criteria that can be verified by read
 - Design stories before their integration stories
 - Each story produces a **working increment**
 
+**Validate build/packaging order against the REAL toolchain.** Start from the architecture's **Build & Packaging Order** section, then confirm it: for each story, probe whether its build/install steps actually succeed given **only the artifacts present at that story's boundary**. A DoD item whose build/install needs an artifact a later story produces belongs in that later story — move it. This is confirmation of architect-version's stated constraints, not first-principles discovery; running it against the real toolchain also catches environment drift the architecture couldn't foresee.
+
 ### Self-containment (so engineers never reload the 61 KB architecture)
 - Include enough context in each story that the executing agent doesn't need to read other documents
 - **Inline the relevant architecture decisions** directly into the story — the engineer reads its story + `context.md` + `lessons.md`, nothing more
@@ -112,6 +114,8 @@ Inline the relevant decisions so the executor doesn't need to cross-reference.
 ## References
 - Links to relevant architecture sections for deeper context
 ```
+
+**Acceptance criteria must reference the integration checkout.** When an acceptance criterion names a path or branch to verify against, point it at the **integration checkout / `code_branch`** — never a per-story worktree path. Per-story worktrees are deleted after merge, so anything that names one is stale by the time QA checks it.
 
 ## Phase 4 — Create Index
 
@@ -156,6 +160,4 @@ Pointer to `setup-playbook.md` (how to spin up a code worktree for this repo).
 Links to the deeper sections of architecture.md for the rare case an engineer needs them.
 ```
 
-Also scaffold the session log surface (the orchestrator commits these during PREP):
-- `specs/<version>/lessons.md` — start it with a heading and an empty "Lessons" section. You (the PO) own and curate it through the session.
-- `specs/<version>/logs/` — the directory where each engineer appends its own `engineer-N.md` running log.
+Do **not** scaffold the session log surface here — the **lead creates** `lessons.md` and `logs/` during PREP (orchestrate Phase 3). You (the PO) own and curate the **content** of `lessons.md` through the session, consolidating each engineer's `logs/engineer-N.md` into it; you don't create the files.

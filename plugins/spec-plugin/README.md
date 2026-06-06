@@ -50,6 +50,7 @@ The project spec's **Project Context** section captures what `/ideate` learned a
 | `engineer` | Task execution — new stories and validation fixes. | Session pool (persistent) |
 | `designer` | Visual UI creation following the design system. | Per design story |
 | `qa` | Writes validation specs and runs them as engineers hand work over. Reports failures — never fixes. | Whole execution (one live QA) |
+| `intern` | Junior haiku worker. Runs one cheap, mechanical skill (`/verify-symbol`, `/setup-env`) and reports a tight result. | Ad hoc, one-shot |
 
 Agents work the **code repo** in isolated worktrees and the **spec workspace** (second brain) directly on its current branch — see *Workspaces* below.
 
@@ -64,8 +65,18 @@ Agents work the **code repo** in isolated worktrees and the **spec workspace** (
 | `/build-stories` | Version → ordered story files |
 | `/execute-task` | Execute one task — code or deliverable |
 | `/validate-execution` | Validate against Definition of Done — tests or review |
-| `/run-retrospective` | Post-version lessons learned |
+| `/audit-dod` | Independent DoD gate — audits a version's Definition of Done against the behavior-not-artifact rubric |
 | `/orchestrate` | Full version execution with agent team |
+
+**Primitive skills** — focused cognitive moves a role runs **inline** (or dispatches to the `intern` when cheap and mechanical):
+
+| Skill | Description |
+|-------|-------------|
+| `/verify-symbol` | Confirm an external method/field/endpoint/flag exists and get its real signature |
+| `/trace-flow` | Trace a value across layers end-to-end, noting where its shape changes |
+| `/probe-contract` | Exercise an API/contract against the real code to confirm its behavior |
+| `/explore-conventions` | Discover a codebase's conventions before writing to it |
+| `/setup-env` | Stand up a code worktree / environment per the setup-playbook |
 
 ## Workspaces
 
@@ -80,7 +91,7 @@ How to create a worktree for *your* code repo isn't hardcoded — at the start o
 
 ```
 specs/
-├── <project-name>.md          # Project specification (from /ideate)
+├── spec.md                     # Project specification (from /ideate)
 ├── architecture.md             # Implementation approach (from /architect)
 ├── roadmap.md                  # Version progression (from /plan)
 ├── v0.1-short-name.md          # Version specs (from /plan)

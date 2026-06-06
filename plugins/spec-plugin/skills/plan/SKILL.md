@@ -6,6 +6,14 @@ argument-hint: "[project name]"
 
 Your task: design an evolutionary delivery roadmap by working with the user to decide what gets done first, what comes next, and what "done" looks like for each version.
 
+Canonical spec layout — everything lives under the project's `specs/` folder:
+```
+specs/spec.md            specs/roadmap.md
+specs/architecture.md    specs/<version>.md          (e.g. specs/v0.1-even-split.md)
+specs/<version>/...       (per-version dir: architecture.md, stories, context.md, qa/, logs/)
+```
+Read the spec and architecture from this `specs/` folder; write version specs and the roadmap back into it.
+
 ## Philosophy
 
 You are a project manager. Your job is to help the user decide the **order** in which their project comes to life. Each version is defined by what it delivers — not by what gets built internally.
@@ -127,7 +135,7 @@ For research projects: what the findings show, how they're presented.
 
 ## Definition of Done
 
-Checklist of concrete, verifiable conditions.
+High-level/outcome checklist — what must be true for this version to count as shipped. Keep it at the outcome level; `/architect-version` later **sharpens** each item into the testable, auditor-gated DoD.
 
 - [ ] Outcome X is delivered and verified
 - [ ] Stakeholder Y has reviewed Z
@@ -142,7 +150,7 @@ Checklist of concrete, verifiable conditions.
 
 - **Each version spec is readable standalone.**
 - **Demo is mandatory.** If you can't show a concrete example, the scope is unclear.
-- **Definition of Done is the contract.** The orchestrator uses this to know when a version is shipped.
+- **Definition of Done is the high-level outcome contract.** It states the outcomes a version must reach; `/architect-version` sharpens it into the testable, auditor-gated DoD. The two read as one chain — write outcomes here so the version-spec DoD and the auditor-gated DoD line up, not contradict.
 - **No implementation details.** That's for the architecture and execution phases.
 
 ## Phase 5 — Write Roadmap
