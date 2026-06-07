@@ -24,7 +24,7 @@ The orchestrator coordinates a **living team** per version:
 ```
 
 - A fresh, independent **auditor** gates the Definition of Done *before* any story is built, so a version isn't built against a DoD that measures the wrong thing.
-- The **product-owner** and a single **QA** stay live the whole session; **engineers** persist as a pool and carry context across stories.
+- The **product-owner** and a single **QA** stay live the whole session; **engineers** are spawned fresh per story (re-warmed by a preloaded story + `context.md` + `lessons.md`, not carried context).
 - A **setup-playbook**, shared **`context.md`**, and a running **`lessons.md`** are prepared up front, so engineers read those instead of re-loading the full architecture.
 
 A version ships when the human confirms its Definition of Done is met.
@@ -47,7 +47,7 @@ The project spec's **Project Context** section captures what `/ideate` learned a
 | `architect` | Deep-dive version architecture + a behavior-based Definition of Done. | Per pass; revised in the DoD-gate loop |
 | `auditor` | Independent DoD gate — no execution context. Reports PASS or gaps; never fixes. | Fresh, one-shot per gate round |
 | `product-owner` | Story breakdown, then stays live: answers questions, re-refines scope, curates `lessons.md`, runs final review + human handoff. | Whole session |
-| `engineer` | Task execution — new stories and validation fixes. | Session pool (persistent) |
+| `engineer` | Task execution — new stories and validation fixes. | Fresh per story |
 | `designer` | Visual UI creation following the design system. | Per design story |
 | `qa` | Writes validation specs and runs them as engineers hand work over. Reports failures — never fixes. | Whole execution (one live QA) |
 | `intern` | Junior haiku worker. Runs one cheap, mechanical skill (`/verify-symbol`, `/setup-env`) and reports a tight result. | Ad hoc, one-shot |

@@ -29,6 +29,8 @@ Break the version into stories following these principles. **Read the codebase b
 - A story that creates one config file is **too narrow**
 - Sweet spot: **one cohesive concern** per story
 
+**Budget each story to one agent context window — no mid-execution compaction.** A story that forces the engineer to compact mid-flight was too big: it will cost multiples of its fair share (a late, bloated session ran ~5x the turns of an early one). Concretely: if a story would require authoring a very large single file (hundreds of lines), touch many modules, or span multiple output repos, SPLIT it into cohesive sub-stories. Prefer more small stories over one large one — fresh-per-story spawning makes the extra stories cheap, and a story that fits in one context never compacts.
+
 ### Agent Assignment
 
 Every story must specify its **agent** — the agent type that will execute it:
