@@ -5,10 +5,13 @@ argument-hint: "[story file path or validation spec path with fix instructions]"
 ---
 
 ```!
-S="$ARGUMENTS"; V="$(dirname "$S" 2>/dev/null)"
-echo "=== STORY ($S) ==="; cat "$S" 2>/dev/null || echo "(story not found here — read it in Phase 1)"
-echo "=== context.md ==="; cat "$V/context.md" 2>/dev/null || echo "(no context.md)"
-echo "=== lessons.md ==="; cat "$V/lessons.md" 2>/dev/null || echo "(no lessons.md)"
+set -f
+S="$ARGUMENTS[0]"
+[ -r "$S" ] || { echo "preload: story file not readable: '$S'" >&2; exit 1; }   # required — fail loud
+V="$(dirname "$S")"
+echo "=== STORY ($S) ==="; cat "$S"
+echo "=== context.md ==="; cat "$V/context.md" 2>/dev/null || echo "(no context.md — optional)"
+echo "=== lessons.md ==="; cat "$V/lessons.md" 2>/dev/null || echo "(no lessons.md — optional)"
 ```
 
 Your task: execute ONE task end-to-end, producing output that meets all acceptance criteria. The task is either a new story (from `/build-stories`) or a fix (from `/validate-execution` findings).
