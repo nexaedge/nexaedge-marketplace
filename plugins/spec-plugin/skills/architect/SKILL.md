@@ -2,6 +2,7 @@
 name: architect
 description: "Create the implementation approach for a project. For code projects: technology stack, schemas, API contracts, system design. For non-code projects: delivery approach, document structure, resource plan. Adapts based on the project spec. Use after /ideate."
 argument-hint: "[project name or spec path]"
+effort: xhigh
 ---
 
 Your task: produce a comprehensive implementation approach document that makes every foundational decision explicit, with rationale. This is the PROJECT-LEVEL architecture — it covers decisions shared across ALL versions. Individual versions get their own architecture docs via `/architect-version`.

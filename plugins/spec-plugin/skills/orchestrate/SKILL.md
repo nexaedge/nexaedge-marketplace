@@ -51,7 +51,7 @@ Agent({ subagent_type: "<role>", team_name: "<version>", name: "<instance>",
 
 ### Teammate spawn preamble (include in EVERY teammate spawn prompt)
 
-You are the protocol authority. Inject this verbatim block into the prompt of **every** teammate you spawn (engineer, QA, PO, architect, auditor, designer) so the team-coordination facts are stated once, by you:
+You are the protocol authority. Inject this verbatim block into the prompt of **every** teammate you spawn (engineer, QA, PO, architect, auditor, designer, intern) so the team-coordination facts are stated once, by you:
 
 > **Team coordination protocol:**
 > - Address teammates by their **bare name** via `SendMessage` (`team-lead`, `qa-1`, `engineer-1`). **Never** suffix the team — `team-lead@v0.1` is rejected.
@@ -164,7 +164,7 @@ In a 1-engineer (sequential) run this degrades to: halt → report → PO/user d
 2. **Gate the DoD before building** — a fresh auditor, looping to the architect, is far cheaper than re-architecting after sign-off.
 3. **Keep the PO and QA alive** — context and continuous verification beat per-round restarts.
 4. **Engineers persist; verification stays independent** — the auditor, QA, PO, and human provide the independence, so engineers don't need to be churned.
-5. **Prepare context once** — playbook + `context.md` + `lessons.md`, committed up front; engineers read those, not the 61 KB architecture.
+5. **Prepare context once** — playbook + `context.md` + `lessons.md`, committed up front; engineers read those, not the full architecture.
 6. **Halt early, never split live** — the red-button routes surprises through the PO and the user.
 7. **Human ends the cycle** — no version ships without sign-off.
 8. **Resume-friendly** — Phase 0 detects existing state and picks up where it left off.

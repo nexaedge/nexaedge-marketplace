@@ -4,9 +4,18 @@ description: "Execute a single task end-to-end — either a new story or a fix f
 argument-hint: "[story file path or validation spec path with fix instructions]"
 ---
 
+```!
+S="$ARGUMENTS"; V="$(dirname "$S" 2>/dev/null)"
+echo "=== STORY ($S) ==="; cat "$S" 2>/dev/null || echo "(story not found here — read it in Phase 1)"
+echo "=== context.md ==="; cat "$V/context.md" 2>/dev/null || echo "(no context.md)"
+echo "=== lessons.md ==="; cat "$V/lessons.md" 2>/dev/null || echo "(no lessons.md)"
+```
+
 Your task: execute ONE task end-to-end, producing output that meets all acceptance criteria. The task is either a new story (from `/build-stories`) or a fix (from `/validate-execution` findings).
 
 ## Phase 1 — Load Context
+
+> **Steps 1, 4, 5 are PRELOADED above** (your story, `context.md`, `lessons.md`) — work from that injected content; do NOT re-Read those three files. Read them with the Read tool only if the preload above shows a "not found" marker for one.
 
 1. Read the task file (your story) at the provided path
 2. Determine the version from the path (e.g., `specs/v0.1-core-push/001-...` → v0.1-core-push)
@@ -176,7 +185,7 @@ Append an `## Execution Log` section to the task file:
 - What's left to do
 ```
 
-Then update `specs/<version>/stories.md` — mark the task as `completed` ONLY if ALL acceptance criteria pass. Otherwise mark as `in-progress`. After updating, **re-read stories.md** to verify the change was saved.
+Then update `specs/<version>/stories.md` — mark the task as `completed` ONLY if ALL acceptance criteria pass. Otherwise mark as `in-progress`.
 
 Also append your durable learnings (surprises, under-specified spots, setup gotchas, decisions) to **`specs/<version>/logs/engineer-<N>.md`** — your own file. The PO consolidates these into `lessons.md` for everyone.
 

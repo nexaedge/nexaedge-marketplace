@@ -19,12 +19,11 @@ Your task: as the **single live QA for the whole execution**, write the validati
 ## Phase 1 — Load Context
 
 1. **Locate specs.** If the orchestrator specified a specs repo path in your prompt, read specs from there. Otherwise, look for `specs/` in CWD.
-2. Read the version spec: `specs/<version>.md` — focus on Definition of Done
-3. Read the version architecture: `specs/<version>/architecture.md`
-4. Read the stories index: `specs/<version>/stories.md`
-5. **Read the project spec** — check **Project Context** for project type and code repository path
-6. Check if validation specs exist at `specs/<version>/qa/`
-7. **Code checkout:** maintain your own checkout/worktree of `code_repo` at `code_branch`, set up per the **setup-playbook** (`specs/<version>/setup-playbook.md`). Pull `code_branch` as engineers merge their stories so you always validate the latest integrated state.
+2. Read the version architecture: `specs/<version>/architecture.md` — focus on the sharpened, auditor-gated Definition of Done (not the higher-level one in the version spec)
+3. Read the stories index: `specs/<version>/stories.md`
+4. **Read the project spec** — check **Project Context** for project type and code repository path
+5. Check if validation specs exist at `specs/<version>/qa/`
+6. **Code checkout:** maintain your own checkout/worktree of `code_repo` at `code_branch`, set up per the **setup-playbook** (`specs/<version>/setup-playbook.md`). Pull `code_branch` as engineers merge their stories so you always validate the latest integrated state.
 
 ### If no validation specs exist → Write them first (Phase 1B)
 

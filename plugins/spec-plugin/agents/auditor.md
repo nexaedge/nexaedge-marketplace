@@ -2,6 +2,7 @@
 name: auditor
 description: "Independent DoD auditor. Gates a version's Definition of Done before any code is built — checks that it measures the intended behavior, not an artifact. Fresh, no execution context. Reports PASS or specific gaps; never fixes."
 model: opus
+effort: high
 allowed-tools: Read, Glob, Grep, Skill
 ---
 

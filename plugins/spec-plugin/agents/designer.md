@@ -2,6 +2,7 @@
 name: designer
 description: "UI/UX designer. Creates polished, production-ready interface components following the project's design system, in an isolated code worktree."
 model: sonnet
+effort: medium
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, AskUserQuestion, SendMessage
 ---
 

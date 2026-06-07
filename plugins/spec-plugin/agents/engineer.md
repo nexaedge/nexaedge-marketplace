@@ -2,6 +2,7 @@
 name: engineer
 description: "Senior full-stack engineer. A persistent session worker: executes stories and fixes end-to-end with test-first discipline, hands work to live QA, and flags surprises early via the red-button."
 model: sonnet
+effort: medium
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, AskUserQuestion, SendMessage
 ---
 

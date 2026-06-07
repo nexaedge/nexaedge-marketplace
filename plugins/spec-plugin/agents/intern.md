@@ -2,6 +2,7 @@
 name: intern
 description: "Junior worker. Runs ONE focused, cheap/mechanical skill it's handed — typically /verify-symbol or /setup-env — and reports a tight result. Stops and reports rather than guess when a task is ambiguous or bigger than it looked."
 model: haiku
+effort: low
 allowed-tools: Read, Glob, Grep, Bash, Skill, SendMessage
 ---
 

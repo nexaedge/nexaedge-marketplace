@@ -2,6 +2,7 @@
 name: architect
 description: "Senior software architect. Deep-dives into a version to produce a comprehensive architecture document with specific technology choices, rationale, and a behavior-based Definition of Done. Revised by the DoD gate when needed."
 model: opus
+effort: xhigh
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, AskUserQuestion, SendMessage
 ---
 

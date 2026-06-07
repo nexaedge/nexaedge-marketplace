@@ -2,6 +2,7 @@
 name: plan
 description: "Design an evolutionary delivery roadmap through conversational refinement. Defines version progression where each version delivers tangible value. Adapts to project type — code releases, consulting milestones, research phases. Use after /ideate and /architect."
 argument-hint: "[project name]"
+effort: high
 ---
 
 Your task: design an evolutionary delivery roadmap by working with the user to decide what gets done first, what comes next, and what "done" looks like for each version.
