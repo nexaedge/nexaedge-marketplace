@@ -3,11 +3,14 @@ name: trace-flow
 description: "Walk one value or action end-to-end across every layer/hop — go-to-definition by go-to-definition, or with a debugger breakpoint — and report the real state transitions and where the contract/shape diverges. The workhorse for architecture sketches and cross-layer debugging."
 argument-hint: "[value/action + start→end, e.g. 'emitted :customer_kyc_updated → OpenAPI type field']"
 allowed-tools: Read, Glob, Grep, Bash, Agent
+context: fork
+agent: Explore
+effort: low
 ---
 
 Run this to follow one thing — a value, an event, a request — through **every hop of the real code** and report exactly what happens to it and where it breaks. This is the move that, done properly during architecture, eliminated fix cycles in past runs (an emit symbol silently `tr("_",".")`-converted before hitting a contract; a token field renamed mid-chain). Do it the way an engineer does at their desk: **click go-to-definition through each call, or set a breakpoint and read the real stack** — not by reading files and guessing.
 
-This is a rich move — run it inline as the role that needs it (architect or engineer); you're already at the right tier for it.
+This skill runs in an isolated forked Explore child and returns only its tight conclusion — so the caller's context stays clean.
 
 ## Procedure
 
@@ -22,7 +25,7 @@ This is a rich move — run it inline as the role that needs it (architect or en
 5. **When static reading is ambiguous, run it** — don't speculate. Use the card's REPL eval to see the real value at a hop, or its **debugger** to capture the exact stack + locals at the point of interest.
 6. **Compare against the contract** — hold the observed end-state against what the spec/OpenAPI/types/another-service expects, and flag every divergence (the payoff).
 
-For a big surface, dispatch the built-in `Explore` agent to map candidate hops first, then trace the real path yourself. Tool versions resolve via asdf automatically.
+For a big surface, use Bash (`rg`/`find`) to map candidate hops first, then trace the real path. Tool versions resolve via asdf automatically.
 
 ## Output
 

@@ -3,11 +3,14 @@ name: setup-env
 description: "Bring a fresh worktree/checkout to a runnable state — verify base HEAD, copy gitignored files (.env), allocate per-agent DB/test env, install deps, run the smoke gate. Deterministic, mechanical. Reports a single ready/blocked verdict."
 argument-hint: "[worktree path + base SHA]"
 allowed-tools: Read, Glob, Grep, Bash
+context: fork
+agent: Explore
+effort: low
 ---
 
 Run this to make a fresh worktree actually runnable, the same way every time, so no engineer or QA agent has to rediscover the setup dance. This is the single most-repeated waste across past runs (manual `.env` copies, stale HEAD, per-agent DB collisions). Execute it deterministically.
 
-This is a cheap, mechanical move — dispatch it to the **intern** (a haiku worker) when you want it cheap, or run it inline when you're already mid-task.
+This skill runs in an isolated forked Explore child and returns only its tight conclusion — so the caller's context stays clean.
 
 ## Source of truth: the setup-playbook
 

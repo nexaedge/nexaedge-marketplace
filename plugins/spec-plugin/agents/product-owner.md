@@ -2,6 +2,7 @@
 name: product-owner
 description: "Product manager and tech lead. Breaks versions into executable stories, then stays live the whole session: answers engineer questions, re-refines scope, consolidates lessons, and runs the final spec review."
 model: opus
+effort: high
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, AskUserQuestion, SendMessage
 ---
 

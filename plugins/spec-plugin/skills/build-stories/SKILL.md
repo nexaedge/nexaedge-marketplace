@@ -17,7 +17,7 @@ Your task: break a version into ordered story files, each sized for a single AI 
 7. Scan the existing workspace (and code repo if specified) to understand what's already built/written
 8. Check for any existing stories in `specs/<version>/`
 
-Pay special attention to the version spec's **Definition of Done** — the final story or stories must directly satisfy these conditions.
+Pay special attention to the **version architecture's Definition of Done** (`specs/<version>/architecture.md`) — the sharpened, auditor-gated DoD, not the higher-level one in the version spec. The final story or stories must directly satisfy it.
 
 ## Phase 2 — Decompose into Stories
 
@@ -28,6 +28,8 @@ Break the version into stories following these principles. **Read the codebase b
 - A story that touches 15 files across 3 layers is **too broad**
 - A story that creates one config file is **too narrow**
 - Sweet spot: **one cohesive concern** per story
+
+**Budget each story to one agent context window — no mid-execution compaction.** A story that forces the engineer to compact mid-flight was too big: it will cost multiples of its fair share (a late, bloated session ran ~5x the turns of an early one). Concretely: if a story would require authoring a very large single file (hundreds of lines), touch many modules, or span multiple output repos, SPLIT it into cohesive sub-stories. Prefer more small stories over one large one — fresh-per-story spawning makes the extra stories cheap, and a story that fits in one context never compacts.
 
 ### Agent Assignment
 
@@ -75,7 +77,7 @@ Each story should include clear acceptance criteria that can be verified by read
 
 **Validate build/packaging order against the REAL toolchain.** Start from the architecture's **Build & Packaging Order** section, then confirm it: for each story, probe whether its build/install steps actually succeed given **only the artifacts present at that story's boundary**. A DoD item whose build/install needs an artifact a later story produces belongs in that later story — move it. This is confirmation of architect-version's stated constraints, not first-principles discovery; running it against the real toolchain also catches environment drift the architecture couldn't foresee.
 
-### Self-containment (so engineers never reload the 61 KB architecture)
+### Self-containment (so engineers never reload the full architecture)
 - Include enough context in each story that the executing agent doesn't need to read other documents
 - **Inline the relevant architecture decisions** directly into the story — the engineer reads its story + `context.md` + `lessons.md`, nothing more
 - Anything cross-cutting (shared conventions, the file manifest, decisions that touch many stories) goes in `context.md`, not repeated in every story
@@ -110,9 +112,6 @@ What to test, at what level, and any fixtures needed.
 
 ## Architecture Context
 Inline the relevant decisions so the executor doesn't need to cross-reference.
-
-## References
-- Links to relevant architecture sections for deeper context
 ```
 
 **Acceptance criteria must reference the integration checkout.** When an acceptance criterion names a path or branch to verify against, point it at the **integration checkout / `code_branch`** — never a per-story worktree path. Per-story worktrees are deleted after merge, so anything that names one is stale by the time QA checks it.

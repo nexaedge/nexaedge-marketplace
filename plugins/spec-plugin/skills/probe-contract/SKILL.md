@@ -3,11 +3,14 @@ name: probe-contract
 description: "Find out how code ACTUALLY behaves by executing the real classes in a REPL — the real request/response shape, the real return value — without relying on a live staging environment. Beats writing a test for 'how does this behave?'."
 argument-hint: "[class/method + the behavior/shape to probe, e.g. 'TokenService#issue → real response shape']"
 allowed-tools: Read, Glob, Grep, Bash
+context: fork
+agent: Explore
+effort: low
 ---
 
 Run this to answer **"what does this actually do / what's the real shape?"** by running the real code — not by reading it and guessing, and not by assuming a live staging environment exists (it usually doesn't). Past runs shipped contract bugs that 100+ green unit tests hid (a missing `_live_` env infix, `expires_in` vs `expires_at`, an illegal cookie write) — caught only by exercising the real thing. Exercise the real thing.
 
-This is a rich move — run it inline as the role that needs it (engineer or QA); you're already at the right tier for it.
+This skill runs in an isolated forked Explore child and returns only its tight conclusion — so the caller's context stays clean.
 
 ## Procedure
 

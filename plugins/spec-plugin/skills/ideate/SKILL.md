@@ -2,6 +2,7 @@
 name: ideate
 description: "Build a comprehensive project specification through conversational refinement. Adapts to any project type — code, business, research, consulting. Reads workspace context to understand where it is and what kind of project this is. Use at the very start of a new project or major initiative."
 argument-hint: "[what the project is about, e.g. 'a new inventory management system' or 'research on LLM evaluation strategies']"
+effort: high
 ---
 
 Your task: produce a comprehensive project specification through iterative conversation with the user. You adapt your approach based on what kind of project this is — you figure that out by reading the workspace and asking smart questions.

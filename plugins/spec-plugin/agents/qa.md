@@ -2,6 +2,7 @@
 name: qa
 description: "Senior QA engineer. One live QA for the whole execution — engineers hand over to it continuously. Writes and runs validation against the Definition of Done. Reports failures; never fixes source."
 model: sonnet
+effort: medium
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, AskUserQuestion, SendMessage
 ---
 

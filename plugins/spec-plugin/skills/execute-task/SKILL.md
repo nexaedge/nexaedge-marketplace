@@ -4,9 +4,21 @@ description: "Execute a single task end-to-end — either a new story or a fix f
 argument-hint: "[story file path or validation spec path with fix instructions]"
 ---
 
+```!
+set -f
+S="$ARGUMENTS[0]"
+[ -r "$S" ] || { echo "preload: story file not readable: '$S'" >&2; exit 1; }   # required — fail loud
+V="$(dirname "$S")"
+echo "=== STORY ($S) ==="; cat "$S"
+echo "=== context.md ==="; cat "$V/context.md" 2>/dev/null || echo "(no context.md — optional)"
+echo "=== lessons.md ==="; cat "$V/lessons.md" 2>/dev/null || echo "(no lessons.md — optional)"
+```
+
 Your task: execute ONE task end-to-end, producing output that meets all acceptance criteria. The task is either a new story (from `/build-stories`) or a fix (from `/validate-execution` findings).
 
 ## Phase 1 — Load Context
+
+> **Steps 1, 4, 5 are PRELOADED above** (your story, `context.md`, `lessons.md`) — work from that injected content; do NOT re-Read those three files. Read them with the Read tool only if the preload above shows a "not found" marker for one.
 
 1. Read the task file (your story) at the provided path
 2. Determine the version from the path (e.g., `specs/v0.1-core-push/001-...` → v0.1-core-push)
@@ -48,13 +60,11 @@ Before producing any output:
 
 This early-flag discipline is what prevents mid-flight story splits.
 
-**Do it the short way — run the primitive skills inline** when you hit that kind of work, instead of grep-spelunking:
+**Delegate exploration — don't grep-spelunk in your own context.** When you need to find a convention, verify a symbol, observe real behavior, or trace a value across layers, invoke the matching primitive skill. Each one runs in an isolated forked child that does the searching/REPL/tracing and returns only the conclusion, so YOUR context stays lean. Do not run ad-hoc grep/cat/ls/find or open large source files in your own context just to explore.
 - **`/explore-conventions`** before writing a new <thing> (controller, subscriber, error, factory, test) — match the codebase's established pattern instead of inventing one.
 - **`/verify-symbol`** before calling any method/field/endpoint you didn't write — confirm it exists and get its real signature.
 - **`/probe-contract`** to see how something actually behaves (run it in a REPL) instead of guessing from the source.
 - **`/trace-flow`** when a value crosses layers and you need to know exactly what happens to it.
-
-Run these inline by default — you're already at the right tier for them. The cheap mechanical ones (`/verify-symbol`, `/setup-env`) may be dispatched to the **intern** (haiku) when you want them cheap; the richer moves stay inline.
 
 ## Phase 3 — Execute
 
@@ -129,7 +139,10 @@ For non-code projects, verification is criteria-based:
 2. For code: run all tests, linters, type checks, builds
 3. For non-code: re-read deliverable against criteria, verify references and links
 4. **Integration check** — verify the output connects properly to what exists
-5. **Hand over to the live QA before declaring done.** There is one QA agent for the whole execution. `SendMessage` it: what you built, how to exercise it, and which Definition-of-Done items it covers. Address QA's findings now, while the work is fresh — don't defer them to an end-of-version gate.
+5. **Gate shared edits across all targets.** If you changed shared/cross-cutting code (a shared module, template, or config that multiple targets/outputs depend on), run the gates for EVERY affected target before handover — not just the one you were working on. (Past runs broke sibling targets silently.)
+6. **Targeted gates until green.** Re-run only the failing targeted test while iterating a fix; run the full suite once at the end to confirm no regressions. Don't re-run the whole suite just to re-confirm a known failure.
+7. **Shell state doesn't persist between Bash calls.** Use absolute paths or `cd <dir> && <cmd>` compound commands for every gate; don't rely on a previous `cd`. Pin the exact working gate invocations into the setup-playbook if they weren't already there.
+8. **Hand over to the live QA before declaring done.** There is one QA agent for the whole execution. `SendMessage` it: what you built, how to exercise it, and which Definition-of-Done items it covers. Address QA's findings now, while the work is fresh — don't defer them to an end-of-version gate.
 
 **Reference the integration checkout, never your worktree.** When you author or revise an acceptance criterion (e.g. on a fix task) or tell QA which path/branch to exercise, name the **integration checkout / `code_branch`** — never your per-story worktree path. Your worktree is deleted after merge, so any criterion or instruction that points at it is stale before QA runs.
 
@@ -176,7 +189,7 @@ Append an `## Execution Log` section to the task file:
 - What's left to do
 ```
 
-Then update `specs/<version>/stories.md` — mark the task as `completed` ONLY if ALL acceptance criteria pass. Otherwise mark as `in-progress`. After updating, **re-read stories.md** to verify the change was saved.
+Then update `specs/<version>/stories.md` — mark the task as `completed` ONLY if ALL acceptance criteria pass. Otherwise mark as `in-progress`.
 
 Also append your durable learnings (surprises, under-specified spots, setup gotchas, decisions) to **`specs/<version>/logs/engineer-<N>.md`** — your own file. The PO consolidates these into `lessons.md` for everyone.
 
