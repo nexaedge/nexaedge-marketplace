@@ -4,6 +4,19 @@ description: "Validate a version's implementation against its Definition of Done
 argument-hint: "[version, e.g. v0.1-core-push]"
 ---
 
+```!
+set -f
+A="$ARGUMENTS[0]"
+V="specs/$A"
+[ -f "$V/architecture.md" ] || { [ -f "$A/architecture.md" ] && V="$A"; }
+[ -f "$V/architecture.md" ] || { p="$(find . -maxdepth 12 \( -name .git -o -name node_modules \) -prune -o -path "*/specs/$A/architecture.md" -print 2>/dev/null | head -1)"; [ -n "$p" ] && V="$(dirname "$p")"; }
+R="$(dirname "$V")"
+echo "=== project spec ($R/spec.md — Project Context) ==="; cat "$R/spec.md" 2>/dev/null || echo "(not found here — locate in Phase 1)"
+echo "=== version architecture ($V/architecture.md — Definition of Done) ==="; cat "$V/architecture.md" 2>/dev/null || echo "(not found here — locate in Phase 1)"
+echo "=== stories index ($V/stories.md) ==="; cat "$V/stories.md" 2>/dev/null || echo "(not found here — locate in Phase 1)"
+echo "=== existing qa/ (incremental re-run state) ==="; ls "$V/qa/" 2>/dev/null || echo "(no qa/ yet — first validation run)"
+```
+
 Your task: as the **single live QA for the whole execution**, write the validation specs and run them **continuously as engineers hand work over** — not in one batch at the end.
 
 **How this runs:**
@@ -17,6 +30,8 @@ Your task: as the **single live QA for the whole execution**, write the validati
 3. **Record the result** in `specs/<version>/qa/`, and **reply PASS or specific findings directly to the engineer** so they fix while the work is fresh. One-line status to the team lead on PASS; full report + CC the lead on FAIL.
 
 ## Phase 1 — Load Context
+
+> **Steps 2–5 are PRELOADED above** (project spec, the DoD-bearing `architecture.md`, `stories.md`, and the existing `qa/` state). Work from that injected content — don't re-Read those files. If a section above shows "(not found here)", the specs weren't auto-located (orchestrator-specified or unusual path): locate them per step 1 and read them normally.
 
 1. **Locate specs.** If the orchestrator specified a specs repo path in your prompt, read specs from there. Otherwise, look for `specs/` in CWD.
 2. Read the version architecture: `specs/<version>/architecture.md` — focus on the sharpened, auditor-gated Definition of Done (not the higher-level one in the version spec)
