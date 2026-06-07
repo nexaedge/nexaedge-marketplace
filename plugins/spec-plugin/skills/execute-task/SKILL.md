@@ -57,13 +57,11 @@ Before producing any output:
 
 This early-flag discipline is what prevents mid-flight story splits.
 
-**Do it the short way — run the primitive skills inline** when you hit that kind of work, instead of grep-spelunking:
+**Delegate exploration — don't grep-spelunk in your own context.** When you need to find a convention, verify a symbol, observe real behavior, or trace a value across layers, invoke the matching primitive skill. Each one runs in an isolated forked child that does the searching/REPL/tracing and returns only the conclusion, so YOUR context stays lean. Do not run ad-hoc grep/cat/ls/find or open large source files in your own context just to explore.
 - **`/explore-conventions`** before writing a new <thing> (controller, subscriber, error, factory, test) — match the codebase's established pattern instead of inventing one.
 - **`/verify-symbol`** before calling any method/field/endpoint you didn't write — confirm it exists and get its real signature.
 - **`/probe-contract`** to see how something actually behaves (run it in a REPL) instead of guessing from the source.
 - **`/trace-flow`** when a value crosses layers and you need to know exactly what happens to it.
-
-Run these inline by default — you're already at the right tier for them. The cheap mechanical ones (`/verify-symbol`, `/setup-env`) may be dispatched to the **intern** (haiku) when you want them cheap; the richer moves stay inline.
 
 ## Phase 3 — Execute
 

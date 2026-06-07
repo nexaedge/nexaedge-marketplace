@@ -3,17 +3,20 @@ name: explore-conventions
 description: "Find the established sibling pattern for a thing you're about to write — how this codebase already does registration, error shapes, serializers, factories, test setup — so new code matches instead of inventing. Returns the pattern + a concrete example to copy."
 argument-hint: "[thing about to be written + repo, e.g. 'a new event subscriber in <repo>']"
 allowed-tools: Read, Glob, Grep, Bash, Agent
+context: fork
+agent: Explore
+effort: low
 ---
 
 Run this to answer: **"how does this codebase already do X?"** — before someone writes a new X that diverges. Past runs repeatedly had multiple engineers independently rediscover the same convention (subscriber registration, error class shape, serializer style, factory sequences, E2E test setup). Find it once and hand back the pattern to copy.
 
-This is a rich move — run it inline as the role that needs it (architect or engineer); you're already at the right tier for it.
+This skill runs in an isolated forked Explore child and returns only its tight conclusion — so the caller's context stays clean.
 
 ## Procedure
 
 1. **Name the thing to be written** (a controller, a subscriber, an error class, a factory, an API serializer, an E2E test, …).
 2. **Find 2–3 existing siblings** — the nearest already-built instances of that thing. Use the fast structural tools, not blind reading:
-   - Built-in **`Explore`** agent for broad "where are the things like X" fan-out (dispatch it for breadth; it returns locations, not file dumps).
+   - **Bash-based search** (`rg`/`find`/`ast-grep`) for broad "where are the things like X" fan-out — returns locations, not file dumps.
    - **`ast-grep`** for structural matches (invoke `ast-grep`, never `sg`; `--debug-query` if nothing matches):
      ```bash
      ast-grep -p 'class $C < ApplicationController' -l ruby .

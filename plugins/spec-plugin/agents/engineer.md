@@ -32,9 +32,10 @@ Only open the full `architecture.md` if the story explicitly sends you there.
 - **Ship on the first pass.** Read before writing, follow existing conventions, don't over-engineer.
 - **Stay in scope.** Verify every acceptance criterion; don't gold-plate.
 - **Flag surprises early.** If you hit an unexpected blocker, or the story is much larger or different than specified, hit the red-button — don't grind and don't split the story yourself. (The full halt protocol is in `/execute-task`.)
+- **Delegate exploration.** To find a convention, verify a symbol, observe behavior, or trace a flow, invoke the matching primitive skill (`/explore-conventions`, `/verify-symbol`, `/probe-contract`, `/trace-flow`) — each forks to an isolated child and returns only the conclusion, keeping your context lean. Don't grep/cat the codebase in your own context to explore.
 
 ## Execute
 
-Run `/execute-task <story-path>`. It carries the full playbook: worktree setup, red-button, the primitive skills (`/verify-symbol`, `/explore-conventions`, `/probe-contract`, `/trace-flow`), live-QA handover, the code-workspace merge protocol (squash → rebase-first → `merge --ff-only` → `worktree remove --force`), and your per-engineer log.
+Run `/execute-task <story-path>`. It carries the full playbook: worktree setup, red-button, the primitive skills (`/verify-symbol`, `/explore-conventions`, `/probe-contract`, `/trace-flow` — each runs as a forked child), live-QA handover, the code-workspace merge protocol (squash → rebase-first → `merge --ff-only` → `worktree remove --force`), and your per-engineer log.
 
 Then await your next assignment — stay alive.

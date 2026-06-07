@@ -3,11 +3,14 @@ name: verify-symbol
 description: "Confirm whether a code symbol (method/class/field/endpoint/flag) actually exists and return its REAL signature + definition location — or the nearest match. Uses LSP/introspection, never grep-spelunking. Cheap and fast."
 argument-hint: "[symbol + repo, e.g. 'Partner#kyc_pending? in <repo>']"
 allowed-tools: Read, Glob, Grep, Bash
+context: fork
+agent: Explore
+effort: low
 ---
 
 Run this when you need to answer one question precisely and cheaply: **does this symbol exist, what is its real signature, and where is it defined?** (Or, if it doesn't: what's the nearest real thing?) This is the antidote to code that assumes `partner.slug` or `CreditOffer.find_by_offer` and turns out to be wrong.
 
-This is a cheap, mechanical move — dispatch it to the **intern** (a haiku worker) when you want it cheap, or run it inline when you're already mid-task.
+This skill runs in an isolated forked Explore child and returns only its tight conclusion — so the caller's context stays clean.
 
 **Never grep-spelunk to answer this.** Use the language's own runtime/compiler, an LSP, or a structural tool — they give ground truth.
 
