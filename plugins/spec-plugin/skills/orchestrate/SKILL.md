@@ -57,6 +57,8 @@ You are the protocol authority. Inject this verbatim block into the prompt of **
 > - Address teammates by their **bare name** via `SendMessage` (`team-lead`, `qa-1`, `engineer-1`). **Never** suffix the team — `team-lead@v0.1` is rejected.
 > - Shutdown handshakes (`shutdown_request` / `shutdown_response`) route to **`team-lead`**, even if a different teammate sent you the request.
 
+Beyond this block, **keep every spawn prompt minimal** — preamble + workspace paths + base branches + which skill to run + a one-line *what & why*. Do **not** paste story / architecture / DoD / `stories.md` content into any teammate's prompt (engineer, QA, PO, architect): each role's skill loads — and preloads — what it needs. Restating it bloats the teammate's context and tempts it to act on your paraphrase instead of the authoritative source.
+
 ## Phase 0 — Detect Workspaces & Select Version
 
 1. **Read CLAUDE.md** (project + user) and scan the CWD. Locate `specs/` (here or in a subdirectory). This is the **spec workspace**; record its path and its **current branch** (`git branch --show-current`) as `spec_branch`. Never hardcode `main`.
@@ -101,7 +103,7 @@ The core loop. Engineers build in code worktrees; one live QA verifies continuou
 Analyze the dependency graph in `stories.md` for parallelism. Present via `AskUserQuestion`: graph, parallel tracks, suggested size (1 sequential / 2 recommended / 3 max). Code+UI stories use a `designer`. Then **spawn one fresh engineer per active track (a new engineer per story, up to the chosen parallelism) and the single live QA** — include the **teammate spawn preamble** (see Roles & Lifecycle) in every spawn prompt.
 
 ### Model tiers
-Each role carries a default model (`architect`/`auditor`/`product-owner` → opus; `engineer`/`designer`/`qa` → sonnet; `intern` → haiku). **Override per story when it pays:** spawn an engineer at `haiku` for a trivial/mechanical story, or `opus` for a gnarly algorithmic one (`Agent({ subagent_type, model })`). The primitive **skills** (`/verify-symbol`, `/trace-flow`, `/probe-contract`, `/explore-conventions`, `/setup-env`) are **`context: fork`** — when any role invokes one, it runs in an isolated **Explore (haiku)** child and returns only its conclusion, so the caller's context stays lean regardless of the caller's own tier. This is why engineers and the recon step **invoke these skills instead of grepping / `Read`-ing the codebase in-context.**
+Each role carries a default model (`architect`/`auditor`/`product-owner` → opus; `engineer`/`designer`/`qa` → sonnet; `intern` → haiku). **Tier per story — `model` is the per-spawn lever** (`effort` is fixed on each agent file and **cannot** be overridden per spawn): for a trivial/mechanical story spawn the engineer at `model: haiku`, or dispatch the **`intern`** (haiku, `effort: low`) for the cheapest mechanical work; for a gnarly algorithmic story spawn at `model: opus` (`Agent({ subagent_type, model })`). The primitive **skills** (`/verify-symbol`, `/trace-flow`, `/probe-contract`, `/explore-conventions`, `/setup-env`) are **`context: fork`** — when any role invokes one, it runs in an isolated **Explore (haiku)** child and returns only its conclusion, so the caller's context stays lean regardless of the caller's own tier. This is why engineers and the recon step **invoke these skills instead of grepping / `Read`-ing the codebase in-context.**
 
 ### Dispatch loop — until all stories are done
 1. Find unblocked stories. Match `subagent_type` to the story's `Agent` field.

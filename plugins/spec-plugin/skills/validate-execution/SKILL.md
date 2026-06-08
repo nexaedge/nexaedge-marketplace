@@ -27,7 +27,7 @@ Your task: as the **single live QA for the whole execution**, write the validati
 
 **Per-handover verification (do this each time an engineer hands a story over):**
 1. The engineer's handover names what was built, how to exercise it, and which DoD items it covers — take that as authoritative (ignore duplicate "please verify" messages from other senders).
-2. **Pull `code_branch`** so you validate the latest integrated state, then run the cases relevant to that story (Phase 3), comparing actual vs expected.
+2. **Pull `code_branch`** so you validate the latest integrated state, then run **only the test cases relevant to THIS story's changed surface** (Phase 3), comparing actual vs expected. Don't re-run the whole suite on every handover — that repeats the same work across N stories; a full regression sweep belongs once at the version-end review, not per handover.
 3. **Record the result** in `specs/<version>/qa/`, and **reply PASS or specific findings directly to the engineer** so they fix while the work is fresh. One-line status to the team lead on PASS; full report + CC the lead on FAIL.
 
 ## Phase 1 — Load Context
