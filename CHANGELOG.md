@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: spec-plugin v13] - 2026-06-08
+
+### Changed
+- Merge pull request #3 from nexaedge/spec-plugin-tuning-r2
+
 ## [Plugin: spec-plugin v12] - 2026-06-07
 
 ### Changed
