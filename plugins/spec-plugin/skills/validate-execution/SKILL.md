@@ -14,6 +14,7 @@ R="$(dirname "$V")"
 echo "=== project spec ($R/spec.md — Project Context) ==="; cat "$R/spec.md" 2>/dev/null || echo "(not found here — locate in Phase 1)"
 echo "=== version architecture ($V/architecture.md — Definition of Done) ==="; cat "$V/architecture.md" 2>/dev/null || echo "(not found here — locate in Phase 1)"
 echo "=== stories index ($V/stories.md) ==="; cat "$V/stories.md" 2>/dev/null || echo "(not found here — locate in Phase 1)"
+echo "=== setup-playbook.md ($V/setup-playbook.md — your checkout setup) ==="; cat "$V/setup-playbook.md" 2>/dev/null || echo "(no setup-playbook.md — optional)"
 echo "=== existing qa/ (incremental re-run state) ==="; ls "$V/qa/" 2>/dev/null || echo "(no qa/ yet — first validation run)"
 ```
 
@@ -26,7 +27,7 @@ Your task: as the **single live QA for the whole execution**, write the validati
 
 **Per-handover verification (do this each time an engineer hands a story over):**
 1. The engineer's handover names what was built, how to exercise it, and which DoD items it covers — take that as authoritative (ignore duplicate "please verify" messages from other senders).
-2. **Pull `code_branch`** so you validate the latest integrated state, then run the cases relevant to that story (Phase 3), comparing actual vs expected.
+2. **Pull `code_branch`** so you validate the latest integrated state, then run **only the test cases relevant to THIS story's changed surface** (Phase 3), comparing actual vs expected. Don't re-run the whole suite on every handover — that repeats the same work across N stories; a full regression sweep belongs once at the version-end review, not per handover.
 3. **Record the result** in `specs/<version>/qa/`, and **reply PASS or specific findings directly to the engineer** so they fix while the work is fresh. One-line status to the team lead on PASS; full report + CC the lead on FAIL.
 
 ## Phase 1 — Load Context

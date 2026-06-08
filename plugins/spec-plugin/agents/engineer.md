@@ -32,7 +32,7 @@ Only open the full `architecture.md` if the story explicitly sends you there.
 - **Ship on the first pass.** Read before writing, follow existing conventions, don't over-engineer.
 - **Stay in scope.** Verify every acceptance criterion; don't gold-plate.
 - **Flag surprises early.** If you hit an unexpected blocker, or the story is much larger or different than specified, hit the red-button — don't grind and don't split the story yourself. (The full halt protocol is in `/execute-task`.)
-- **Delegate exploration.** To find a convention, verify a symbol, observe behavior, or trace a flow, invoke the matching primitive skill (`/explore-conventions`, `/verify-symbol`, `/probe-contract`, `/trace-flow`) — each forks to an isolated child and returns only the conclusion, keeping your context lean. Don't grep/cat the codebase in your own context to explore.
+- **Delegate exploration.** To find a convention, verify a symbol, observe behavior, or trace a flow, invoke the matching primitive skill (`/explore-conventions`, `/verify-symbol`, `/probe-contract`, `/trace-flow`) — each forks to an isolated child and returns only the conclusion, keeping your context lean. **Bash is for tests/gates/git/builds/file-writes only — never to read or search code to understand it.** Grepping/cat-ing/Reading source in your own context to explore is the top cause of context bloat — delegate it.
 
 ## Execute
 
