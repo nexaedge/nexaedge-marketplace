@@ -14,6 +14,7 @@ R="$(dirname "$V")"
 echo "=== project spec ($R/spec.md — Project Context) ==="; cat "$R/spec.md" 2>/dev/null || echo "(not found here — locate in Phase 1)"
 echo "=== version architecture ($V/architecture.md — Definition of Done) ==="; cat "$V/architecture.md" 2>/dev/null || echo "(not found here — locate in Phase 1)"
 echo "=== stories index ($V/stories.md) ==="; cat "$V/stories.md" 2>/dev/null || echo "(not found here — locate in Phase 1)"
+echo "=== setup-playbook.md ($V/setup-playbook.md — your checkout setup) ==="; cat "$V/setup-playbook.md" 2>/dev/null || echo "(no setup-playbook.md — optional)"
 echo "=== existing qa/ (incremental re-run state) ==="; ls "$V/qa/" 2>/dev/null || echo "(no qa/ yet — first validation run)"
 ```
 

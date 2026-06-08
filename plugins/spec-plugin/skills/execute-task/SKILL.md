@@ -12,13 +12,14 @@ V="$(dirname "$S")"
 echo "=== STORY ($S) ==="; cat "$S"
 echo "=== context.md ==="; cat "$V/context.md" 2>/dev/null || echo "(no context.md — optional)"
 echo "=== lessons.md ==="; cat "$V/lessons.md" 2>/dev/null || echo "(no lessons.md — optional)"
+echo "=== setup-playbook.md ==="; cat "$V/setup-playbook.md" 2>/dev/null || echo "(no setup-playbook.md — optional)"
 ```
 
 Your task: execute ONE task end-to-end, producing output that meets all acceptance criteria. The task is either a new story (from `/build-stories`) or a fix (from `/validate-execution` findings).
 
 ## Phase 1 — Load Context
 
-> **Steps 1, 4, 5 are PRELOADED above** (your story, `context.md`, `lessons.md`) — work from that injected content; do NOT re-Read those three files. Read them with the Read tool only if the preload above shows a "not found" marker for one.
+> **Steps 1, 4, 5, and the setup-playbook (step 9) are PRELOADED above** (your story, `context.md`, `lessons.md`, `setup-playbook.md`) — work from that injected content; do NOT re-Read those files. Read with the Read tool only if the preload above shows a "(not found)" marker for one.
 
 1. Read the task file (your story) at the provided path
 2. Determine the version from the path (e.g., `specs/v0.1-core-push/001-...` → v0.1-core-push)
@@ -60,7 +61,7 @@ Before producing any output:
 
 This early-flag discipline is what prevents mid-flight story splits.
 
-**Delegate exploration — don't grep-spelunk in your own context.** When you need to find a convention, verify a symbol, observe real behavior, or trace a value across layers, invoke the matching primitive skill. Each one runs in an isolated forked child that does the searching/REPL/tracing and returns only the conclusion, so YOUR context stays lean. Do not run ad-hoc grep/cat/ls/find or open large source files in your own context just to explore.
+**Delegate exploration — don't grep-spelunk in your own context.** When you need to find a convention, verify a symbol, observe real behavior, or trace a value across layers, invoke the matching primitive skill. Each one runs in an isolated forked child that does the searching/REPL/tracing and returns only the conclusion, so YOUR context stays lean. **Bash is for running tests, gates, builds, git, and writing files — NOT for reading or searching code to understand it.** If you catch yourself about to `grep`/`rg`/`cat`/`find`/`ls` or `Read` a source file just to figure out how something works or where it lives, STOP and invoke the matching primitive below instead — in-context grep-spelunking is the single biggest source of context bloat and forced compaction.
 - **`/explore-conventions`** before writing a new <thing> (controller, subscriber, error, factory, test) — match the codebase's established pattern instead of inventing one.
 - **`/verify-symbol`** before calling any method/field/endpoint you didn't write — confirm it exists and get its real signature.
 - **`/probe-contract`** to see how something actually behaves (run it in a REPL) instead of guessing from the source.
