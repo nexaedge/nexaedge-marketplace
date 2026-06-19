@@ -61,7 +61,7 @@ Beyond this block, **keep every spawn prompt minimal** — preamble + workspace 
 
 ## Phase 0 — Detect Workspaces & Select Version
 
-1. **Read CLAUDE.md** (project + user) and scan the CWD. Locate `specs/` (here or in a subdirectory). This is the **spec workspace**; record its path and its **current branch** (`git branch --show-current`) as `spec_branch`. Never hardcode `main`.
+1. **Read CLAUDE.md** (project + user) and scan the CWD. **If CLAUDE.md declares a spec workspace mapping** (specs for projects here live in a separate / mirrored repo), the spec workspace is that mirrored path for the current project, not the CWD; otherwise locate `specs/` here or in a subdirectory. Either way this is the **spec workspace**; record its path and its **current branch** (`git branch --show-current`) as `spec_branch`. Never hardcode `main`.
 2. **Identify the code workspace** from the project spec's **Project Context** (code repository path) or CLAUDE.md. Record `code_repo` (absolute path) and its base branch as `code_branch`. If specs live inside the code repo, `code_repo` == spec workspace. If there is no code, mark "docs-only".
 3. **Select the version.** If no argument, read the roadmap and ask via `AskUserQuestion`. **Never guess — keep asking until they choose.**
 4. **Assess state** — check what already exists under `specs/<version>/`: `architecture.md`, `setup-playbook.md`, `context.md`, `stories.md`, story files with `## Execution Log`, `qa/`, `lessons.md`. Present the resume point and confirm.

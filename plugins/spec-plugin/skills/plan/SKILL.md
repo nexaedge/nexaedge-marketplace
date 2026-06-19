@@ -26,7 +26,7 @@ You are a project manager. Your job is to help the user decide the **order** in 
 
 ## Phase 1 — Load Context
 
-1. **Find the project spec.** Check `specs/` in the current directory first. If no `specs/` locally, check CLAUDE.md (project and user level) for references to a second-brain or external specs location. Search there for a folder matching the current project (by name, git remote, or project name).
+1. **Find the project spec.** First check CLAUDE.md (project + user) for a **spec workspace mapping** (specs in a separate / mirrored repo); if present, use that mirrored path for the current project. Otherwise check `specs/` in the current directory, then any second-brain / external specs location referenced in CLAUDE.md. Search there for a folder matching the current project (by name, git remote, or project name).
 2. Read the architecture: `specs/architecture.md` (in the specs location)
 3. Read the **Project Context** section from the spec — know the project type and code repository path (if separate)
 4. Check if any `specs/v*.md` version files or `specs/roadmap.md` already exist

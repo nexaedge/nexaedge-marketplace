@@ -8,7 +8,7 @@ Your task: produce a comprehensive architecture document for the given version t
 
 ## Phase 1 — Load Context
 
-1. **Locate specs.** If the orchestrator specified a specs location or specs repo in your prompt, use that path. Otherwise, look for `specs/` in CWD.
+1. **Locate specs.** If the orchestrator specified a specs location or specs repo in your prompt, use that path. Otherwise, **check CLAUDE.md (project + user) for a spec workspace mapping** (specs in a separate / mirrored repo) and use that mirrored path for the current project; only if none is declared, look for `specs/` in CWD.
 2. Read the target version spec at `specs/<version>.md`
 3. Read the overall architecture: `specs/architecture.md`
 4. Read the roadmap: `specs/roadmap.md`

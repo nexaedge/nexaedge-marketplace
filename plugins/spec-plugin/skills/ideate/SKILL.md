@@ -15,7 +15,7 @@ Before asking the user anything, read the environment:
 2. **Scan the directory** — what's here? Is this a code repo (package.json, Cargo.toml, go.mod)? A document workspace? An empty directory? A project within a larger structure?
 3. **Check for existing specs** — does a `specs/` directory already exist? Are there prior specs?
 4. **Check parent context** — if this is a subdirectory, what's above? (e.g., you might be in `clients/acme/` inside a larger workspace)
-5. **Check for external specs location** — if this is a code repo with no `specs/`, check CLAUDE.md (project and user level) for references to a second-brain, specs repository, or external project management directory. Search that location for a folder matching the current project (by name, git remote, or project name). If found, this is where specs should be read from and written to.
+5. **Check for a spec workspace mapping** — check CLAUDE.md (project and user level) for an instruction that specs live in a separate / mirrored repo (a second-brain that points specs to an external workspace, a specs repository, etc.). This applies to **any** workspace, not only code repos. Search that location for the folder matching the current project (by relative path, name, or git remote). If found, this is where specs are read from and written to: the project's specs live at the mirrored path (external spec-workspace root + the project's relative path + `/specs/`).
 
 From this, form an initial understanding:
 - **Where am I?** (standalone repo, subdirectory of a larger workspace, empty directory)
@@ -82,6 +82,7 @@ specs/<version>/...       (per-version dir: architecture.md, stories, context.md
 
 Based on what you've learned, decide where the project folder is:
 
+- **Spec workspace mapping declared in CLAUDE.md** (e.g., a knowledge workspace / second-brain whose CLAUDE.md points specs to a separate mirrored repo): write specs to the mirrored path in that repo, `<spec-workspace-root>/<project-relative-path>/specs/spec.md`, never inside the knowledge workspace. Record the knowledge-workspace project path (and any code repo path) in Project Context so the project's facts and code stay findable.
 - **Code repo with external specs location found** (e.g., second-brain): write to the project's folder there, at `<project>/specs/spec.md`. Include the code repo path in the Project Context so downstream skills know where to find the code.
 - **Code repo with no existing specs and no external location:** create `specs/spec.md` at the repo root
 - **Code repo with existing specs:** add to the existing `specs/` directory (`specs/spec.md`)
