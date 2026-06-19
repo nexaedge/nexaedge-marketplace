@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: spec-plugin v14] - 2026-06-19
+
+### Changed
+- feat(spec-plugin): honor external spec workspace mapping from CLAUDE.md
+
 ## [Plugin: spec-plugin v13] - 2026-06-08
 
 ### Changed
