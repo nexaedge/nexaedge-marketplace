@@ -31,7 +31,7 @@ If you were not told who reads it or whose brand it wears, ask. The theme and th
 ## Non-negotiables
 
 - **The `<title>` is the artifact's name**, not the file name. Write what the report answers, with its scope. A report called "report" cannot be found a month later.
-- **The `.sub` under the `<h1>` renders in at most two lines** in a 1280px-wide viewport. Check it on the rendered page: `sub.getBoundingClientRect().height <= 2 * parseFloat(getComputedStyle(sub).lineHeight)`. When the conclusion needs more, the `.sub` carries its first sentence and the rest opens the body, above the first section.
+- **The `.sub` under the `<h1>` renders in at most two lines, and every other `<p>` in at most four**, in a 1280px-wide viewport. Check each on the rendered page: `el.getBoundingClientRect().height <= lines * parseFloat(getComputedStyle(el).lineHeight)`. When the conclusion needs more than two lines, the `.sub` carries its first sentence and the rest opens the body, above the first section. A paragraph over four lines splits where its topic changes, or its parallel items become a list.
 - **Charts read theme tokens, never a hex.** `token('--c1')`, not `'#2a78d6'`. A theme swap that requires touching chart code is a broken theme.
 - **One axis.** Two measures of different scale become two charts or get indexed to a common base. Never a second y-scale.
 - **Colored SVG text needs `style="fill:…"`.** The stylesheet's `.chart text{fill:var(--muted)}` outranks a `fill` attribute, so an end label set by attribute renders gray. This one is silent and it will happen to you.
