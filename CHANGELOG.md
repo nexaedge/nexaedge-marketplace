@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: html-report v5] - 2026-09-16
+
+### Changed
+- docs: cap report paragraphs at four lines
+
+## [Marketplace v53] - 2026-09-16
+
+### Changed
+- docs: cap report paragraphs at four lines
+
 ## [Plugin: html-report v4] - 2026-09-16
 
 ### Changed
