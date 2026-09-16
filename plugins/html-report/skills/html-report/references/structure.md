@@ -55,6 +55,7 @@ A useful check: if the table would have more than a few thousand rows, nobody is
 
 - **`<title>`**: what the report answers plus the scope. `Retenção por safra · out/2023 a jul/2026`. Never "report", never "index", never the file name. It becomes the tab, the listing entry and how the link is referred to.
 - **Eyebrow**: organisation and subject, e.g. `Acme · Carteira de crédito`.
+- **`.sub`**: the conclusion in at most two lines, under the rule and check in `SKILL.md`.
 - **`.meta` line**: when it was generated, the source, and the data's own as-of date. These are three different dates and the reader needs the last one most.
 - **Footer**: confidentiality and where the field semantics live.
 
