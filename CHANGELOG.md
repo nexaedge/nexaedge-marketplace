@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: html-report v4] - 2026-09-16
+
+### Changed
+- docs: cap the report subtitle at two lines
+
+## [Marketplace v52] - 2026-09-16
+
+### Changed
+- docs: cap the report subtitle at two lines
+
 ## [Plugin: plaud v29] - 2026-09-01
 
 ### Changed
