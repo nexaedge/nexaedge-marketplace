@@ -1,0 +1,13 @@
+[tools]
+# No .tool-versions here and CI pins none either; this is the global asdf default
+# already in effect when a developer runs these commands in this directory.
+python = "3.14.3"
+jq = "1.7.1"
+
+[tasks.generate]
+description = "Regenerate every agent's manifests from catalog.json (also the consistency check)"
+run = "bin/mkt generate"
+
+[tasks.validate]
+description = "Validate the marketplace and plugin structure"
+run = "claude plugin validate ."
