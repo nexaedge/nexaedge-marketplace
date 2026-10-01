@@ -1,0 +1,25 @@
+#!/bin/sh
+# Starts the TypeScript language server the project can use. TypeScript 7 carries its own
+# (`tsc --lsp --stdio`) and no longer ships the tsserver.js that typescript-language-server
+# drives, so a project on 7 or later gets the one in its node_modules; any other project gets
+# typescript-language-server.
+
+dir=${CLAUDE_PROJECT_DIR:-$PWD}
+while [ "$dir" != "/" ] && [ -n "$dir" ]; do
+  manifest="$dir/node_modules/typescript/package.json"
+  if [ -f "$manifest" ]; then
+    major=$(sed -n 's/^[[:space:]]*"version":[[:space:]]*"\([0-9][0-9]*\)\..*/\1/p' "$manifest" | head -n 1)
+    if [ "${major:-0}" -ge 7 ] && [ -x "$dir/node_modules/.bin/tsc" ]; then
+      exec "$dir/node_modules/.bin/tsc" --lsp --stdio
+    fi
+    break
+  fi
+  dir=$(dirname "$dir")
+done
+
+if command -v typescript-language-server >/dev/null 2>&1; then
+  exec typescript-language-server --stdio
+fi
+
+echo "typescript-lsp: the project has no TypeScript 7 in node_modules, and typescript-language-server is not on PATH (npm install -g typescript-language-server typescript)" >&2
+exit 1

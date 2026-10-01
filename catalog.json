@@ -130,6 +130,12 @@
       "source": {
         "kind": "local"
       }
+    },
+    {
+      "name": "typescript-lsp",
+      "source": {
+        "kind": "local"
+      }
     }
   ]
 }
