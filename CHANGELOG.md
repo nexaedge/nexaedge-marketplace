@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: typescript-lsp v2] - 2026-10-01
+
+### Changed
+- feat: add a TypeScript LSP that works on TypeScript 7 (#15)
+
+## [Marketplace v55] - 2026-10-01
+
+### Changed
+- feat: add a TypeScript LSP that works on TypeScript 7 (#15)
+
 ## [Marketplace v54] - 2026-10-01
 
 ### Changed

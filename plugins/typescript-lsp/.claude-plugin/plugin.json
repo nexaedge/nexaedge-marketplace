@@ -1,7 +1,7 @@
 {
   "name": "typescript-lsp",
   "description": "TypeScript and JavaScript code intelligence for Claude Code (go to definition, find references, symbols, hover) that also works on TypeScript 7. A project whose node_modules carries TypeScript 7 gets the language server TypeScript 7 ships (`tsc --lsp`), since it no longer has the tsserver.js other servers drive; every other project gets typescript-language-server.",
-  "version": "v1",
+  "version": "v2",
   "author": {
     "name": "Jaison Erick",
     "url": "https://github.com/jaisonerick"
