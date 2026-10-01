@@ -67,6 +67,10 @@
     {
       "name": "miro-board",
       "source": "./plugins/miro-board"
+    },
+    {
+      "name": "typescript-lsp",
+      "source": "./plugins/typescript-lsp"
     }
   ]
 }
