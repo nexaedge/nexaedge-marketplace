@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Marketplace v54] - 2026-10-01
+
+### Changed
+- feat: drop the three LSP plugins from the catalog (#14)
+
 ## [Plugin: html-report v5] - 2026-09-16
 
 ### Changed
