@@ -8,6 +8,8 @@
 - `textDocument/definition` answers `{"cwd": <dir>}`.
 - `workspace/symbol` answers `[{"name": <dir>}]`.
 - `shutdown` answers null, and `exit` ends it.
+
+In a folder holding a `.refuse` file it ends at once, before reading anything.
 """
 
 import json
@@ -16,6 +18,8 @@ import sys
 from typing import Any
 
 root_uri = None
+if os.path.exists(".refuse"):
+    sys.exit(3)
 
 
 def read() -> dict[str, Any] | None:

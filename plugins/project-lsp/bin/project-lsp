@@ -250,16 +250,16 @@ class Router:
             if self._servers.get(server.root) is server:
                 del self._servers[server.root]
             gone = f"project-lsp: the language server of {server.root} ended"
-            for request_id, (owner, handler) in list(self._internal.items()):
-                if owner is server:
-                    del self._internal[request_id]
-                    handler(error_response(request_id, gone))
+            internal = [i for i, (owner, _) in self._internal.items() if owner is server]
+            for request_id in internal:
+                _, handler = self._internal.pop(request_id)
+                handler(error_response(request_id, gone))
             for request_id, owner in list(self._owners.items()):
                 if owner is server:
                     del self._owners[request_id]
                     self._client.send(error_response(request_id, gone))
             for held in server.held:
-                if "id" in held:
+                if "id" in held and held["id"] not in internal:
                     self._client.send(error_response(held["id"], gone))
             server.held = []
             if self._stopping:
@@ -327,6 +327,7 @@ class Router:
             if "error" in response:
                 print(f"project-lsp: {server.root} refused initialize: {response['error']}",
                       file=sys.stderr)
+                server.process.kill()
                 return
             server.writer.send({"jsonrpc": "2.0", "method": "initialized", "params": {}})
             if self._configuration is not None:
@@ -358,9 +359,9 @@ class Router:
         server.send(message)
 
     def _ask_every_server(self, message: Message) -> None:
-        """Sends a request to every server and answers the client once all have answered, with
-        their result lists joined."""
-        servers = [server for server in self._servers.values() if server.ready]
+        """Sends a request to every server, those still in their handshake included, and answers
+        the client once all have answered, with their result lists joined."""
+        servers = list(self._servers.values())
         answers: dict[str, Message] = {}
         asked: list[str] = []
 
@@ -380,7 +381,7 @@ class Router:
             asked.append(request_id)
             self._internal[request_id] = (server, lambda r, i=request_id: answered(i, r))
         for server, request_id in zip(servers, asked, strict=True):
-            server.writer.send({**message, "id": request_id})
+            server.send({**message, "id": request_id})
         if not servers:
             self._client.send({"jsonrpc": "2.0", "id": message["id"], "result": joined()})
 

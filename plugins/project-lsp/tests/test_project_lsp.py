@@ -195,6 +195,36 @@ def test_a_workspace_symbol_search_joins_the_answers_of_every_server(
     )
 
 
+def test_a_symbol_search_sent_as_a_file_of_a_new_project_opens_reaches_that_project(
+    client: Client, session: Path, tmp_path: Path
+) -> None:
+    other = git_repository(tmp_path / "other")
+
+    client.open(other / "b.go")
+    response = client.request("workspace/symbol", {"query": "x"})
+
+    assert sorted(symbol["name"] for symbol in response["result"]) == sorted(
+        [str(session), str(other)]
+    )
+
+
+def test_a_server_that_ends_in_its_handshake_leaves_no_request_unanswered(
+    client: Client, session: Path, tmp_path: Path
+) -> None:
+    broken = git_repository(tmp_path / "broken")
+    (broken / ".refuse").touch()
+
+    client.open(broken / "b.go")
+    symbols = client.request("workspace/symbol", {"query": "x"})
+    definition = client.request(
+        "textDocument/definition",
+        {"textDocument": {"uri": (broken / "b.go").as_uri()}, "position": {"line": 0, "character": 0}},
+    )
+
+    assert [symbol["name"] for symbol in symbols["result"]] == [str(session)]
+    assert "error" in definition
+
+
 def test_requests_of_two_servers_reach_the_client_apart_and_each_answer_returns_to_its_server(
     client: Client, session: Path, tmp_path: Path
 ) -> None:
