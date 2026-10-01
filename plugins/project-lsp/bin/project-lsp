@@ -1,0 +1,409 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# ///
+"""A language server that runs one real server per project.
+
+usage: project-lsp -- COMMAND [ARGS...]
+
+The project of a file is the git worktree that holds it, or its directory outside git. Each
+project gets its own COMMAND, started in that project through `mise exec -C`, so it sees the
+project's own tool versions and environment. A message about a file goes to the server of that
+file's project, a workspace symbol search goes to every server and their answers are joined, and
+any other message goes to the server of the project the session started in.
+"""
+
+import json
+import os
+import queue
+import shutil
+import subprocess
+import sys
+import threading
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any, BinaryIO
+from urllib.parse import unquote, urlparse
+
+type Message = dict[str, Any]
+type Handler = Callable[[Message], None]
+
+INTERNAL_ERROR = -32603
+STOP_GRACE_SECONDS = 5
+# What `uv run --script` adds to run this file. A server inheriting it would take uv's throwaway
+# environment for the project's own Python.
+UV_VARIABLES = ("VIRTUAL_ENV", "UV", "UV_RUN_RECURSION_DEPTH")
+
+
+def read_message(stream: BinaryIO) -> Message | None:
+    """The next message of an LSP stream, or None once the stream ends."""
+    length: int | None = None
+    while True:
+        line = stream.readline()
+        if not line:
+            return None
+        line = line.strip()
+        if not line:
+            if length is not None:
+                break
+            continue
+        name, _, value = line.partition(b":")
+        if name.strip().lower() == b"content-length":
+            length = int(value)
+    body = stream.read(length)
+    if len(body) < length:
+        return None
+    return json.loads(body)
+
+
+class Writer:
+    """Writes the messages handed to it to one stream, from a thread of its own, so that routing
+    never waits on a full pipe."""
+
+    def __init__(self, stream: BinaryIO) -> None:
+        self._stream = stream
+        self._queue: queue.Queue[Message | None] = queue.Queue()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def send(self, message: Message) -> None:
+        self._queue.put(message)
+
+    def close(self, timeout: float | None = None) -> None:
+        """Writes what is queued, closes the stream, and waits up to `timeout` for both."""
+        self._queue.put(None)
+        self._thread.join(timeout)
+
+    def _run(self) -> None:
+        while (message := self._queue.get()) is not None:
+            body = json.dumps(message, ensure_ascii=False).encode()
+            try:
+                self._stream.write(b"Content-Length: %d\r\n\r\n" % len(body) + body)
+                self._stream.flush()
+            except (BrokenPipeError, ValueError):
+                return
+        try:
+            self._stream.close()
+        except OSError:
+            pass
+
+
+def project_root(path: Path) -> Path:
+    """The git worktree that holds `path`, or the directory of `path` outside git."""
+    directory = path if path.is_dir() else path.parent
+    while not directory.exists() and directory != directory.parent:
+        directory = directory.parent
+    found = subprocess.run(
+        ["git", "-C", str(directory), "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    top = found.stdout.strip()
+    return Path(top).resolve() if found.returncode == 0 and top else directory.resolve()
+
+
+def file_path(uri: str) -> Path | None:
+    parsed = urlparse(uri)
+    return Path(unquote(parsed.path)) if parsed.scheme == "file" else None
+
+
+def document_uri(params: object) -> str | None:
+    """The file a message is about: its text document, or the item of a call or type hierarchy."""
+    if not isinstance(params, dict):
+        return None
+    for key in ("textDocument", "item"):
+        value = params.get(key)
+        if isinstance(value, dict) and isinstance(value.get("uri"), str):
+            return value["uri"]
+    return None
+
+
+def session_root(params: Message) -> Path:
+    if isinstance(params.get("rootUri"), str):
+        path = file_path(params["rootUri"])
+        if path is not None:
+            return path
+    folders = params.get("workspaceFolders")
+    if isinstance(folders, list) and folders and isinstance(folders[0], dict):
+        path = file_path(str(folders[0].get("uri", "")))
+        if path is not None:
+            return path
+    if isinstance(params.get("rootPath"), str):
+        return Path(params["rootPath"])
+    return Path.cwd()
+
+
+def rooted_at(params: Message, root: Path) -> Message:
+    """The initialize parameters of the session, for a server whose one folder is `root`."""
+    folder = {"uri": root.as_uri(), "name": root.name}
+    return {**params, "rootUri": folder["uri"], "rootPath": str(root), "workspaceFolders": [folder]}
+
+
+def server_environment(environment: dict[str, str]) -> dict[str, str]:
+    kept = {name: value for name, value in environment.items() if name not in UV_VARIABLES}
+    uv_bin = environment.get("VIRTUAL_ENV")
+    if uv_bin is not None:
+        entries = kept.get("PATH", "").split(os.pathsep)
+        kept["PATH"] = os.pathsep.join(e for e in entries if e != str(Path(uv_bin) / "bin"))
+    return kept
+
+
+def error_response(request_id: Any, message: str) -> Message:
+    return {"jsonrpc": "2.0", "id": request_id, "error": {"code": INTERNAL_ERROR, "message": message}}
+
+
+class Server:
+    """One real language server, rooted at one project. Until its handshake is done, what is
+    sent to it waits in `held`."""
+
+    def __init__(self, root: Path, command: list[str], environment: dict[str, str]) -> None:
+        self.root = root
+        mise = shutil.which("mise", path=environment.get("PATH"))
+        self.argv = [mise, "exec", "-C", str(root), "--", *command] if mise else command
+        self.process = subprocess.Popen(
+            self.argv, cwd=root, env=environment, stdin=subprocess.PIPE, stdout=subprocess.PIPE
+        )
+        assert self.process.stdin is not None and self.process.stdout is not None
+        self.output: BinaryIO = self.process.stdout
+        self.writer = Writer(self.process.stdin)
+        self.ready = False
+        self.held: list[Message] = []
+
+    def send(self, message: Message) -> None:
+        if self.ready:
+            self.writer.send(message)
+        else:
+            self.held.append(message)
+
+    def open(self) -> None:
+        """Ends the handshake: what was held goes out, and what follows goes straight."""
+        self.ready = True
+        for message in self.held:
+            self.writer.send(message)
+        self.held = []
+
+
+class Router:
+    def __init__(self, command: list[str], client: Writer, environment: dict[str, str]) -> None:
+        self._command = command
+        self._client = client
+        self._environment = server_environment(environment)
+        self._lock = threading.RLock()
+        self._params: Message = {}
+        self._primary: Server | None = None
+        self._servers: dict[Path, Server] = {}
+        self._roots: dict[Path, Path] = {}
+        self._owners: dict[Any, Server] = {}
+        self._internal: dict[str, tuple[Server, Handler]] = {}
+        self._forwarded: dict[str, tuple[Server, Any]] = {}
+        self._configuration: Message | None = None
+        self._next_id = 0
+        self._stopping = False
+
+    def from_client(self, message: Message) -> bool:
+        """Routes one message of the client; True once the client said `exit`."""
+        with self._lock:
+            method = message.get("method")
+            if method is None:
+                self._answer_server(message)
+            elif method == "initialize":
+                self._start_primary(message)
+            elif method == "exit":
+                self._stopping = True
+                for server in self._servers.values():
+                    server.writer.send(message)
+                return True
+            elif method in ("workspace/symbol", "shutdown"):
+                self._ask_every_server(message)
+            elif method == "$/cancelRequest":
+                owner = self._owners.get((message.get("params") or {}).get("id"))
+                if owner is not None:
+                    owner.send(message)
+            else:
+                self._route(message)
+        return False
+
+    def from_server(self, server: Server, message: Message) -> None:
+        with self._lock:
+            method = message.get("method")
+            if method is None:
+                internal = self._internal.pop(message.get("id"), None)
+                if internal is not None:
+                    internal[1](message)
+                    return
+                self._owners.pop(message.get("id"), None)
+                self._client.send(message)
+            elif "id" not in message:
+                self._client.send(message)
+            elif method == "workspace/workspaceFolders":
+                folder = {"uri": server.root.as_uri(), "name": server.root.name}
+                server.writer.send({"jsonrpc": "2.0", "id": message["id"], "result": [folder]})
+            else:
+                forwarded_id = self._new_id()
+                self._forwarded[forwarded_id] = (server, message["id"])
+                self._client.send({**message, "id": forwarded_id})
+
+    def server_ended(self, server: Server) -> None:
+        code = server.process.wait()
+        with self._lock:
+            if self._servers.get(server.root) is server:
+                del self._servers[server.root]
+            gone = f"project-lsp: the language server of {server.root} ended"
+            for request_id, (owner, handler) in list(self._internal.items()):
+                if owner is server:
+                    del self._internal[request_id]
+                    handler(error_response(request_id, gone))
+            for request_id, owner in list(self._owners.items()):
+                if owner is server:
+                    del self._owners[request_id]
+                    self._client.send(error_response(request_id, gone))
+            for held in server.held:
+                if "id" in held:
+                    self._client.send(error_response(held["id"], gone))
+            server.held = []
+            if self._stopping:
+                return
+            print(f"{gone} with exit code {code}: {' '.join(server.argv)}", file=sys.stderr)
+            if server is self._primary:
+                os._exit(1)
+
+    def stop(self) -> None:
+        """Closes every server's input and waits for them, killing those that do not end."""
+        with self._lock:
+            self._stopping = True
+            servers = list(self._servers.values())
+        for server in servers:
+            server.writer.close(STOP_GRACE_SECONDS)
+        for server in servers:
+            try:
+                server.process.wait(STOP_GRACE_SECONDS)
+            except subprocess.TimeoutExpired:
+                server.process.kill()
+
+    def _new_id(self) -> str:
+        self._next_id += 1
+        return f"project-lsp:{self._next_id}"
+
+    def _root_of(self, path: Path) -> Path:
+        directory = path if path.is_dir() else path.parent
+        if directory not in self._roots:
+            self._roots[directory] = project_root(path)
+        return self._roots[directory]
+
+    def _start(self, root: Path) -> Server:
+        server = Server(root, self._command, self._environment)
+        self._servers[root] = server
+        threading.Thread(target=self._read, args=(server,), daemon=True).start()
+        return server
+
+    def _read(self, server: Server) -> None:
+        while (message := read_message(server.output)) is not None:
+            self.from_server(server, message)
+        self.server_ended(server)
+
+    def _start_primary(self, message: Message) -> None:
+        self._params = message.get("params") or {}
+        root = self._root_of(session_root(self._params))
+        self._primary = self._start(root)
+        self._primary.ready = True
+        self._owners[message["id"]] = self._primary
+        self._primary.send({**message, "params": rooted_at(self._params, root)})
+
+    def _server_for(self, uri: str | None) -> Server:
+        assert self._primary is not None
+        path = file_path(uri) if uri is not None else None
+        if path is None:
+            return self._primary
+        root = self._root_of(path)
+        server = self._servers.get(root)
+        if server is None:
+            server = self._start(root)
+            self._handshake(server)
+        return server
+
+    def _handshake(self, server: Server) -> None:
+        def initialized(response: Message) -> None:
+            if "error" in response:
+                print(f"project-lsp: {server.root} refused initialize: {response['error']}",
+                      file=sys.stderr)
+                return
+            server.writer.send({"jsonrpc": "2.0", "method": "initialized", "params": {}})
+            if self._configuration is not None:
+                server.writer.send(self._configuration)
+            server.open()
+
+        request_id = self._new_id()
+        self._internal[request_id] = (server, initialized)
+        server.writer.send(
+            {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "method": "initialize",
+                "params": rooted_at(self._params, server.root),
+            }
+        )
+
+    def _route(self, message: Message) -> None:
+        if message.get("method") == "workspace/didChangeConfiguration":
+            self._configuration = message
+        uri = document_uri(message.get("params"))
+        if uri is None and "id" not in message:
+            for server in self._servers.values():
+                server.send(message)
+            return
+        server = self._server_for(uri)
+        if "id" in message:
+            self._owners[message["id"]] = server
+        server.send(message)
+
+    def _ask_every_server(self, message: Message) -> None:
+        """Sends a request to every server and answers the client once all have answered, with
+        their result lists joined."""
+        servers = [server for server in self._servers.values() if server.ready]
+        answers: dict[str, Message] = {}
+        asked: list[str] = []
+
+        def answered(request_id: str, response: Message) -> None:
+            answers[request_id] = response
+            if len(answers) == len(asked):
+                self._client.send({"jsonrpc": "2.0", "id": message["id"], "result": joined()})
+
+        def joined() -> list[Any] | None:
+            if message["method"] == "shutdown":
+                return None
+            results = [answer.get("result") for answer in answers.values()]
+            return [item for result in results if isinstance(result, list) for item in result]
+
+        for server in servers:
+            request_id = self._new_id()
+            asked.append(request_id)
+            self._internal[request_id] = (server, lambda r, i=request_id: answered(i, r))
+        for server, request_id in zip(servers, asked, strict=True):
+            server.writer.send({**message, "id": request_id})
+        if not servers:
+            self._client.send({"jsonrpc": "2.0", "id": message["id"], "result": joined()})
+
+    def _answer_server(self, message: Message) -> None:
+        forwarded = self._forwarded.pop(message.get("id"), None)
+        if forwarded is not None:
+            server, original_id = forwarded
+            server.writer.send({**message, "id": original_id})
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) < 2 or argv[0] != "--":
+        print("usage: project-lsp -- COMMAND [ARGS...]", file=sys.stderr)
+        return 2
+    client = Writer(sys.stdout.buffer)
+    router = Router(argv[1:], client, dict(os.environ))
+    while (message := read_message(sys.stdin.buffer)) is not None:
+        if router.from_client(message):
+            break
+    router.stop()
+    client.close(STOP_GRACE_SECONDS)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
