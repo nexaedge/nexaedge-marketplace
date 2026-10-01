@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: project-lsp v3] - 2026-10-01
+
+### Changed
+- fix: search symbols in projects still opening (#17)
+
+## [Marketplace v57] - 2026-10-01
+
+### Changed
+- fix: search symbols in projects still opening (#17)
+
 ## [Plugin: project-lsp v2] - 2026-10-01
 
 ### Changed
