@@ -65,30 +65,6 @@
       }
     },
     {
-      "name": "typescript-lsp",
-      "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/anthropics/claude-plugins-official.git",
-        "path": "plugins/typescript-lsp"
-      }
-    },
-    {
-      "name": "pyright-lsp",
-      "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/anthropics/claude-plugins-official.git",
-        "path": "plugins/pyright-lsp"
-      }
-    },
-    {
-      "name": "rust-analyzer-lsp",
-      "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/anthropics/claude-plugins-official.git",
-        "path": "plugins/rust-analyzer-lsp"
-      }
-    },
-    {
       "name": "miro-board",
       "source": "./plugins/miro-board"
     }
