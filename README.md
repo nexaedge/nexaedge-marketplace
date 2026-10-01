@@ -35,11 +35,10 @@ The `nexaedge` plugin is the front end for the other ones. It detects which agen
 | interface-design | ● | | | Craft-first interface design for product UI |
 | frontend-design | ● | | | Distinctive visual direction for new UI |
 | commit-commands | ● | | | Git commit, push and PR workflows |
-| typescript-lsp | ● | | | TypeScript code intelligence |
-| pyright-lsp | ● | | | Python code intelligence |
-| rust-analyzer-lsp | ● | | | Rust code intelligence |
 
 Claude-only plugins need something the other agents do not expose to plugins: subagents, hooks, LSP servers, or they are referenced from someone else's repository and only carry a Claude manifest. `catalog.json` records the reason per plugin, in its `requires` field.
+
+The TypeScript, Python and Rust LSP plugins (`typescript-lsp`, `pyright-lsp`, `rust-analyzer-lsp`) install from the official Anthropic marketplace, `claude-plugins-official`.
 
 ## How one directory serves three agents
 
