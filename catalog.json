@@ -132,7 +132,7 @@
       }
     },
     {
-      "name": "typescript-lsp",
+      "name": "project-lsp",
       "source": {
         "kind": "local"
       }

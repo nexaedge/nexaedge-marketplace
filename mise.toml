@@ -8,6 +8,10 @@ jq = "1.7.1"
 description = "Regenerate every agent's manifests from catalog.json (also the consistency check)"
 run = "bin/mkt generate"
 
+[tasks.test]
+description = "Run the tests the plugins carry"
+run = "uv run --no-project --python 3.12 --with pytest pytest plugins/*/tests"
+
 [tasks.validate]
 description = "Validate the marketplace and plugin structure"
 run = "claude plugin validate ."
