@@ -19,6 +19,8 @@ FAKE_SERVER = Path(__file__).resolve().parent / "fake_server.py"
 TIMEOUT = 10
 # Enough for git, and no mise: a test that wants mise puts its own fake first.
 BASE_PATH = os.pathsep.join(["/usr/bin", "/bin"])
+SCRIPTS = ["--scripts", sys.executable, str(FAKE_SERVER), "scripts"]
+SCRIPT = '# /// script\n# dependencies = ["httpx"]\n# ///\nimport httpx\n'
 
 type Message = dict[str, Any]
 
@@ -26,9 +28,9 @@ type Message = dict[str, Any]
 class Client:
     """The session's side of project-lsp: sends messages and waits for the ones it expects."""
 
-    def __init__(self, path: str, cwd: Path) -> None:
+    def __init__(self, path: str, cwd: Path, options: list[str]) -> None:
         self.process = subprocess.Popen(
-            [sys.executable, str(PROJECT_LSP), "--", sys.executable, str(FAKE_SERVER)],
+            [sys.executable, str(PROJECT_LSP), *options, "--", sys.executable, str(FAKE_SERVER)],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             env={"PATH": path, "HOME": os.environ.get("HOME", "/")},
@@ -69,8 +71,8 @@ class Client:
         )
         return message["params"]["diagnostics"][0]["message"]
 
-    def open(self, path: Path) -> None:
-        document = {"uri": path.as_uri(), "languageId": "go", "version": 1, "text": ""}
+    def open(self, path: Path, text: str = "") -> None:
+        document = {"uri": path.as_uri(), "languageId": "go", "version": 1, "text": text}
         self.send({"method": "textDocument/didOpen", "params": {"textDocument": document}})
 
     def _read(self) -> None:
@@ -118,8 +120,16 @@ def client(session: Path) -> Iterator[Client]:
     started.process.wait()
 
 
-def start(session: Path, path: str) -> Client:
-    started = Client(path, session)
+@pytest.fixture
+def scripts_client(session: Path) -> Iterator[Client]:
+    started = start(session, BASE_PATH, SCRIPTS)
+    yield started
+    started.process.kill()
+    started.process.wait()
+
+
+def start(session: Path, path: str, options: list[str] | None = None) -> Client:
+    started = Client(path, session, options or [])
     root = (session / "sub").as_uri()
     response = started.request("initialize", {"processId": None, "rootUri": root, "capabilities": {}})
     assert response["result"] == {"capabilities": {"fake": True}}
@@ -289,3 +299,61 @@ def test_uv_leaves_nothing_in_the_environment_of_a_server() -> None:
     )
 
     assert kept == {"PATH": "/usr/bin", "HOME": "/home/u"}
+
+
+def test_a_file_with_inline_script_metadata_goes_to_the_scripts_server_of_its_project(
+    scripts_client: Client, session: Path
+) -> None:
+    scripts_client.open(session / "tool.py", SCRIPT)
+
+    assert scripts_client.diagnostic_of(session / "tool.py") == f"{described(session)} as=scripts"
+
+
+def test_a_file_without_inline_script_metadata_stays_with_the_server_of_its_project(
+    scripts_client: Client, session: Path
+) -> None:
+    scripts_client.open(session / "lib.py", "# /// pyproject\n# ///\nimport os\n")
+
+    assert scripts_client.diagnostic_of(session / "lib.py") == described(session)
+
+
+def test_a_script_reached_before_it_is_opened_is_recognised_from_its_saved_text(
+    scripts_client: Client, session: Path
+) -> None:
+    (session / "tool.py").write_text(SCRIPT)
+
+    response = scripts_client.request(
+        "textDocument/definition",
+        {"textDocument": {"uri": (session / "tool.py").as_uri()},
+         "position": {"line": 0, "character": 0}},
+    )
+
+    assert response["result"] == {"cwd": str(session), "as": "scripts"}
+
+
+def test_a_workspace_symbol_search_asks_one_server_per_project(
+    scripts_client: Client, session: Path, tmp_path: Path
+) -> None:
+    only_scripts = git_repository(tmp_path / "only-scripts")
+    scripts_client.open(session / "tool.py", SCRIPT)
+    scripts_client.open(only_scripts / "tool.py", SCRIPT)
+    scripts_client.diagnostic_of(session / "tool.py")
+    scripts_client.diagnostic_of(only_scripts / "tool.py")
+
+    response = scripts_client.request("workspace/symbol", {"query": "x"})
+
+    assert sorted(symbol["name"] for symbol in response["result"]) == sorted(
+        [str(session), str(only_scripts)]
+    )
+
+
+@pytest.mark.parametrize(
+    "argv", [[], ["--"], ["--scripts", "--", "pyright"], ["--scripts", "ty", "server"]]
+)
+def test_an_incomplete_command_line_ends_with_the_usage(argv: list[str]) -> None:
+    ended = subprocess.run(
+        [sys.executable, str(PROJECT_LSP), *argv], capture_output=True, text=True, check=False
+    )
+
+    assert ended.returncode == 2
+    assert ended.stderr.startswith("usage: project-lsp")

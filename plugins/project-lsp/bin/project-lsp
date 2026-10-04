@@ -4,30 +4,36 @@
 # ///
 """A language server that runs one real server per project.
 
-usage: project-lsp -- COMMAND [ARGS...]
+usage: project-lsp [--scripts SCRIPT_COMMAND [ARGS...]] -- COMMAND [ARGS...]
 
 The project of a file is the git worktree that holds it, or its directory outside git. Each
 project gets its own COMMAND, started in that project through `mise exec -C`, so it sees the
-project's own tool versions and environment. A message about a file goes to the server of that
-file's project, a workspace symbol search goes to every server and their answers are joined, and
-any other message goes to the server of the project the session started in.
+project's own tool versions and environment. With `--scripts`, a file carrying PEP 723 inline
+script metadata goes to the project's SCRIPT_COMMAND instead. A message about a file goes to the
+server of that file, a workspace symbol search goes to one server per project and their answers
+are joined, and any other message goes to the server of the project the session started in.
 """
 
 import json
 import os
 import queue
+import re
 import shutil
 import subprocess
 import sys
 import threading
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, BinaryIO
 from urllib.parse import unquote, urlparse
 
 type Message = dict[str, Any]
 type Handler = Callable[[Message], None]
+type Command = tuple[str, ...]
 
+USAGE = "usage: project-lsp [--scripts SCRIPT_COMMAND [ARGS...]] -- COMMAND [ARGS...]"
+SCRIPT_METADATA = re.compile(r"(?m)^# /// script$\s(?:^#(?:| .*)$\s)+^# ///$")
 INTERNAL_ERROR = -32603
 STOP_GRACE_SECONDS = 5
 # What `uv run --script` adds to run this file. A server inheriting it would take uv's throwaway
@@ -119,6 +125,47 @@ def document_uri(params: object) -> str | None:
     return None
 
 
+def opened_text(params: object) -> str | None:
+    """The text a `textDocument/didOpen` carries."""
+    if isinstance(params, dict):
+        document = params.get("textDocument")
+        if isinstance(document, dict) and isinstance(document.get("text"), str):
+            return document["text"]
+    return None
+
+
+def saved_text(path: Path) -> str:
+    try:
+        return path.read_text(errors="replace")
+    except OSError:
+        return ""
+
+
+def is_script(text: str) -> bool:
+    """Whether `text` carries a PEP 723 `script` metadata block."""
+    return SCRIPT_METADATA.search(text) is not None
+
+
+@dataclass(frozen=True)
+class Commands:
+    project: Command
+    scripts: Command | None
+
+
+def parse_commands(argv: list[str]) -> Commands | None:
+    """The commands of `[--scripts SCRIPT_COMMAND...] -- COMMAND...`, or None for any other argv."""
+    scripts: Command | None = None
+    if argv[:1] == ["--scripts"]:
+        if "--" not in argv:
+            return None
+        end = argv.index("--")
+        scripts = tuple(argv[1:end])
+        argv = argv[end:]
+    if len(argv) < 2 or argv[0] != "--" or scripts == ():
+        return None
+    return Commands(tuple(argv[1:]), scripts)
+
+
 def session_root(params: Message) -> Path:
     if isinstance(params.get("rootUri"), str):
         path = file_path(params["rootUri"])
@@ -157,8 +204,9 @@ class Server:
     """One real language server, rooted at one project. Until its handshake is done, what is
     sent to it waits in `held`."""
 
-    def __init__(self, root: Path, command: list[str], environment: dict[str, str]) -> None:
+    def __init__(self, root: Path, command: Command, environment: dict[str, str]) -> None:
         self.root = root
+        self.key = (root, command)
         mise = shutil.which("mise", path=environment.get("PATH"))
         self.argv = [mise, "exec", "-C", str(root), "--", *command] if mise else command
         self.process = subprocess.Popen(
@@ -185,15 +233,16 @@ class Server:
 
 
 class Router:
-    def __init__(self, command: list[str], client: Writer, environment: dict[str, str]) -> None:
-        self._command = command
+    def __init__(self, commands: Commands, client: Writer, environment: dict[str, str]) -> None:
+        self._commands = commands
         self._client = client
         self._environment = server_environment(environment)
         self._lock = threading.RLock()
         self._params: Message = {}
         self._primary: Server | None = None
-        self._servers: dict[Path, Server] = {}
+        self._servers: dict[tuple[Path, Command], Server] = {}
         self._roots: dict[Path, Path] = {}
+        self._scripts: dict[Path, bool] = {}
         self._owners: dict[Any, Server] = {}
         self._internal: dict[str, tuple[Server, Handler]] = {}
         self._forwarded: dict[str, tuple[Server, Any]] = {}
@@ -214,8 +263,10 @@ class Router:
                 for server in self._servers.values():
                     server.writer.send(message)
                 return True
-            elif method in ("workspace/symbol", "shutdown"):
-                self._ask_every_server(message)
+            elif method == "workspace/symbol":
+                self._ask_servers(message, self._symbol_servers())
+            elif method == "shutdown":
+                self._ask_servers(message, list(self._servers.values()))
             elif method == "$/cancelRequest":
                 owner = self._owners.get((message.get("params") or {}).get("id"))
                 if owner is not None:
@@ -247,8 +298,8 @@ class Router:
     def server_ended(self, server: Server) -> None:
         code = server.process.wait()
         with self._lock:
-            if self._servers.get(server.root) is server:
-                del self._servers[server.root]
+            if self._servers.get(server.key) is server:
+                del self._servers[server.key]
             gone = f"project-lsp: the language server of {server.root} ended"
             internal = [i for i, (owner, _) in self._internal.items() if owner is server]
             for request_id in internal:
@@ -291,9 +342,17 @@ class Router:
             self._roots[directory] = project_root(path)
         return self._roots[directory]
 
-    def _start(self, root: Path) -> Server:
-        server = Server(root, self._command, self._environment)
-        self._servers[root] = server
+    def _command_for(self, path: Path, text: str | None) -> Command:
+        scripts = self._commands.scripts
+        if scripts is None:
+            return self._commands.project
+        if path not in self._scripts:
+            self._scripts[path] = is_script(saved_text(path) if text is None else text)
+        return scripts if self._scripts[path] else self._commands.project
+
+    def _start(self, root: Path, command: Command) -> Server:
+        server = Server(root, command, self._environment)
+        self._servers[server.key] = server
         threading.Thread(target=self._read, args=(server,), daemon=True).start()
         return server
 
@@ -305,20 +364,20 @@ class Router:
     def _start_primary(self, message: Message) -> None:
         self._params = message.get("params") or {}
         root = self._root_of(session_root(self._params))
-        self._primary = self._start(root)
+        self._primary = self._start(root, self._commands.project)
         self._primary.ready = True
         self._owners[message["id"]] = self._primary
         self._primary.send({**message, "params": rooted_at(self._params, root)})
 
-    def _server_for(self, uri: str | None) -> Server:
+    def _server_for(self, uri: str | None, text: str | None) -> Server:
         assert self._primary is not None
         path = file_path(uri) if uri is not None else None
         if path is None:
             return self._primary
-        root = self._root_of(path)
-        server = self._servers.get(root)
+        key = (self._root_of(path), self._command_for(path, text))
+        server = self._servers.get(key)
         if server is None:
-            server = self._start(root)
+            server = self._start(*key)
             self._handshake(server)
         return server
 
@@ -353,15 +412,24 @@ class Router:
             for server in self._servers.values():
                 server.send(message)
             return
-        server = self._server_for(uri)
+        server = self._server_for(uri, opened_text(message.get("params")))
         if "id" in message:
             self._owners[message["id"]] = server
         server.send(message)
 
-    def _ask_every_server(self, message: Message) -> None:
-        """Sends a request to every server, those still in their handshake included, and answers
-        the client once all have answered, with their result lists joined."""
-        servers = list(self._servers.values())
+    def _symbol_servers(self) -> list[Server]:
+        """One server per project. The project's server indexes the scripts too, so a scripts
+        server answers only where its project has none."""
+        project = self._commands.project
+        return [
+            server
+            for (root, command), server in self._servers.items()
+            if command == project or (root, project) not in self._servers
+        ]
+
+    def _ask_servers(self, message: Message, servers: list[Server]) -> None:
+        """Sends a request to `servers`, those still in their handshake included, and answers the
+        client once all have answered, with their result lists joined."""
         answers: dict[str, Message] = {}
         asked: list[str] = []
 
@@ -393,11 +461,12 @@ class Router:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) < 2 or argv[0] != "--":
-        print("usage: project-lsp -- COMMAND [ARGS...]", file=sys.stderr)
+    commands = parse_commands(argv)
+    if commands is None:
+        print(USAGE, file=sys.stderr)
         return 2
     client = Writer(sys.stdout.buffer)
-    router = Router(argv[1:], client, dict(os.environ))
+    router = Router(commands, client, dict(os.environ))
     while (message := read_message(sys.stdin.buffer)) is not None:
         if router.from_client(message):
             break

@@ -9,13 +9,14 @@ Claude Code starts one language server per language for the whole session, roote
 - **The project of a file** is the git worktree that holds it, the folder `git rev-parse --show-toplevel` names from the file's directory. A file outside git belongs to its own directory.
 - **Each project gets its own server**, started the first time one of its files is opened, through `mise exec -C <project> -- <server>` when `mise` is on `PATH`. The server then sees the project's own tool versions, environment and virtualenv, as a shell opened in that folder would.
 - **A message about a file** (open, change, definition, references, hover, call hierarchy) goes to the server of the file's project, and the diagnostics of that server come back as they are.
-- **A workspace symbol search** goes to every server running, and the answer joins theirs.
+- **A Python script that declares its own dependencies** in a PEP 723 block (`# /// script`, the header `uv run --script` reads) goes to a `ty server` of its project instead of pyright. ty creates and updates the script's environment from that block through uv, so the script's imports resolve against the dependencies it declares.
+- **A workspace symbol search** goes to one server per project, and the answer joins theirs. A project's pyright also finds the symbols of its scripts, so the ty of a project answers only while no pyright runs there.
 - **Anything else** goes to the server of the project the session started in, whose answer to `initialize` is the one Claude Code sees.
 
 | Language | Server | Extensions |
 | --- | --- | --- |
 | Go | `gopls` | `.go` |
-| Python | `pyright-langserver --stdio` | `.py`, `.pyi` |
+| Python | `pyright-langserver --stdio`, and `ty server` for a script with a PEP 723 block | `.py`, `.pyi` |
 | Rust | `rust-analyzer` | `.rs` |
 | TypeScript, JavaScript | `tsc --lsp --stdio` from the project's `node_modules` on TypeScript 7 or later, `typescript-language-server --stdio` before that | `.ts`, `.tsx`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs`, `.cjs` |
 
@@ -27,7 +28,7 @@ TypeScript 7 carries its own language server and no longer ships the `tsserver.j
 claude plugin install project-lsp@nexaedge-marketplace
 ```
 
-Each server has to be on `PATH`, or installed by mise. `bin/project-lsp` runs through `uv run --script`, so `uv` has to be on `PATH` too.
+Each server has to be on `PATH`, or installed by mise. `bin/project-lsp` runs through `uv run --script`, so `uv` has to be on `PATH` too, at 0.12.3 or later for ty to build the environment of a script.
 
 Claude Code runs one language server per file extension, so disable the plugins this one replaces before enabling it: `gopls-lsp`, `pyright-lsp`, `rust-analyzer-lsp` and `typescript-lsp` from `claude-plugins-official`.
 
