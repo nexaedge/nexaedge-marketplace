@@ -8,7 +8,10 @@
   },
   "pyright": {
     "command": "${CLAUDE_PLUGIN_ROOT}/bin/project-lsp",
-    "args": ["--", "pyright-langserver", "--stdio"],
+    "args": ["--scripts", "ty", "server", "--", "pyright-langserver", "--stdio"],
+    "initializationOptions": {
+      "experimental": { "useUv": "scripts" }
+    },
     "extensionToLanguage": {
       ".py": "python",
       ".pyi": "python"
