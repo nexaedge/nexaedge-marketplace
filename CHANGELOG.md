@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: project-lsp v4] - 2026-10-04
+
+### Changed
+- feat: send PEP 723 scripts to ty in project-lsp (#18)
+
+## [Marketplace v58] - 2026-10-04
+
+### Changed
+- feat: send PEP 723 scripts to ty in project-lsp (#18)
+
 ## [Plugin: project-lsp v3] - 2026-10-01
 
 ### Changed
