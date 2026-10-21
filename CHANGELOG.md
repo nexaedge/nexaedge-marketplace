@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: html-report v6] - 2026-10-21
+
+### Changed
+- feat: give html-report reports a dark theme (#19)
+
+## [Marketplace v59] - 2026-10-21
+
+### Changed
+- feat: give html-report reports a dark theme (#19)
+
 ## [Plugin: project-lsp v4] - 2026-10-04
 
 ### Changed
