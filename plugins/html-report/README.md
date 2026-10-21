@@ -21,7 +21,7 @@ The skill asks for whatever it still needs — who reads it, whose brand it wear
 
 ## Themes
 
-The plugin ships **no brand**. A theme is only what sits between the `/* THEME */` and `/* /THEME */` markers in the report's stylesheet, and there are three ways to get one:
+The plugin ships **no brand**. A theme is only what sits between the `/* THEME */` and `/* /THEME */` markers in the report's stylesheet, and it always has a light and a dark mode. A report opens in the mode the operating system asks for; a button in the header cycles system, light and dark and remembers the choice, and print is always light. There are three ways to get a theme:
 
 **Lift it from an earlier report.** Any report built with this skill carries its theme in a machine-readable block:
 
@@ -29,7 +29,7 @@ The plugin ships **no brand**. A theme is only what sits between the `/* THEME *
 node theme.mjs extract relatorio-anterior.html
 ```
 
-Point the skill at a previous file and the new report matches it exactly. This is the normal path once an organisation has one report.
+Point the skill at a previous file and the new report matches it exactly, light and dark. This is the normal path once an organisation has one report.
 
 **Derive it from a brand color.** For a new organisation:
 
@@ -37,18 +37,18 @@ Point the skill at a previous file and the new report matches it exactly. This i
 node theme.mjs derive --brand "#E4572E"
 ```
 
-It proposes the ink, the greys, the text accent and the full sequential ramp, and it measures where light text has to take over. It deliberately leaves the categorical series slots empty: picking hues that stay apart is judgement, not arithmetic.
+For each mode it proposes the ink, the greys, the text accent and the full sequential ramp, and it measures where the text over the ramp has to flip. It deliberately leaves the categorical series slots empty: picking hues that stay apart is judgement, not arithmetic.
 
-**Use the neutral default.** The base template ships with an unbranded theme that passes every check — fine for an internal report that belongs to no brand.
+**Use the neutral default.** The base template ships with an unbranded theme, light and dark, that passes every check. It is fine for an internal report that belongs to no brand.
 
 Either way, check it:
 
 ```
-node theme.mjs check relatorio.html        # the whole theme, in place
+node theme.mjs check relatorio.html        # both modes of the theme, in place
 node theme.mjs check "#hex,#hex,#hex"      # a candidate series palette
 ```
 
-`check` verifies text contrast, the series (lightness band, chroma floor, adjacent separation), ramp monotonicity, and that the declared text-flip index matches the measured one. It exits non-zero on failure, so it fits a build step. It does not simulate colour-vision deficiency; for that, and for choosing a chart form, use the `dataviz` skill.
+`check` validates each mode against its own background: text contrast, the series (lightness band of that mode, chroma floor, adjacent separation), ramp monotonicity in that mode's direction, and that the declared text-flip index matches the measured one. It fails when a mode is missing and exits non-zero on any failure, so it fits a build step. It does not simulate colour-vision deficiency; for that, and for choosing a chart form, use the `dataviz` skill.
 
 ## What is inside
 
@@ -58,7 +58,7 @@ skills/html-report/
   references/
     structure.md        document skeleton, embedding data, self-containment, size limits
     charts.md           which form to pick, the SVG patterns, the traps that cost a rebuild
-    themes.md           the token contract, extracting, deriving, validating
+    themes.md           the token contract, light and dark modes, extracting, deriving, validating
     writing.md          section order, headline first, glossing, honesty rules
   assets/skeleton.html  the base file to copy
   scripts/theme.mjs     extract / derive / check, no dependencies, Node 18+

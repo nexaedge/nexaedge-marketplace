@@ -3,11 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <!-- The title is the artifact's NAME: in the tab, in the share listing, in how people
      refer to the link. Write what the report answers, with its scope
      ("Retenção por safra · out/2023 a jul/2026"), never the file name. -->
 <title>TÍTULO · RECORTE</title>
 
+<script>
+  try { const t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
 <style>
 /* The markers below are a CONTRACT, not decoration: `theme.mjs extract` reads the
    block back out of any report built with this skill. Keep them bare — no text on
@@ -23,9 +27,38 @@
   --c1:#2a78d6; --c2:#eb6834; --c3:#0e9c8f; --c4:#c97a00; --c5:#6b5bc4; --c6:#c44c86;
   --h0:#e8eef4; --h1:#c8d8e6; --h2:#9db9d2; --h3:#6f95b8;
   --h4:#456f99; --h5:#28496e; --h6:#12263c;
-  /* --on-flip = primeiro passo da rampa em que o texto branco vence. Medido por
-     rampa, nunca copiado de outro tema. */
+  /* --on-flip = primeiro passo da rampa em que --on-hi vence --on-lo. Medido por
+     rampa e por tema, nunca copiado de outro. No claro a rampa desce e --on-hi é
+     branco; no escuro ela sobe e --on-hi é a tinta escura. */
   --on-lo:#1a1a19; --on-hi:#ffffff; --on-flip:4;
+}
+/* O tema escuro vale duas vezes, com o mesmo conteúdo: pela preferência do sistema
+   e pela escolha explícita no botão. Os dois ficam sob `screen`, e a impressão sai clara. */
+@media screen and (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --ink:#f0efec; --muted:#c9c8bf; --faint:#a6a49c;
+    --bg:#161615; --panel:#20201e; --line:#353430;
+    --accent:#6da7ec; --brand:#3987e5;
+    --pos:#3fb950; --neg:#f07272; --warn:#e3a33a;
+    --c1:#3987e5; --c2:#d95926; --c3:#14a596; --c4:#c98500; --c5:#9085e9; --c6:#d55181;
+    --h0:#1f2a35; --h1:#273d52; --h2:#335573; --h3:#456b92;
+    --h4:#6f95b8; --h5:#9db9d2; --h6:#cfdeeb;
+    --on-lo:#f0efec; --on-hi:#161615; --on-flip:4;
+  }
+}
+@media screen{
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --ink:#f0efec; --muted:#c9c8bf; --faint:#a6a49c;
+    --bg:#161615; --panel:#20201e; --line:#353430;
+    --accent:#6da7ec; --brand:#3987e5;
+    --pos:#3fb950; --neg:#f07272; --warn:#e3a33a;
+    --c1:#3987e5; --c2:#d95926; --c3:#14a596; --c4:#c98500; --c5:#9085e9; --c6:#d55181;
+    --h0:#1f2a35; --h1:#273d52; --h2:#335573; --h3:#456b92;
+    --h4:#6f95b8; --h5:#9db9d2; --h6:#cfdeeb;
+    --on-lo:#f0efec; --on-hi:#161615; --on-flip:4;
+  }
 }
 /* /THEME */
 
@@ -35,7 +68,15 @@ body{margin:0;background:var(--bg);color:var(--ink);line-height:1.55;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   -webkit-font-smoothing:antialiased}
 .wrap{max-width:1080px;margin:0 auto;padding:3rem 1.5rem 5rem}
-header{border-bottom:1px solid var(--line);padding-bottom:1.6rem;margin-bottom:2.4rem}
+header{position:relative;border-bottom:1px solid var(--line);padding:0 3rem 1.6rem 0;margin-bottom:2.4rem}
+.theme-toggle{position:absolute;top:0;right:0;flex:none;display:grid;place-items:center;width:36px;height:36px;
+  padding:0;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);cursor:pointer}
+.theme-toggle:hover{color:var(--ink);border-color:var(--muted)}
+.theme-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.theme-toggle svg{display:none}
+.theme-toggle[data-state="light"] .i-light,
+.theme-toggle[data-state="dark"] .i-dark,
+.theme-toggle[data-state="system"] .i-system{display:block}
 .eyebrow{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
 h1{font-size:clamp(1.7rem,3.6vw,2.5rem);line-height:1.1;margin:.5rem 0 .6rem;font-weight:800;letter-spacing:-.02em}
 h2{font-size:1.3rem;margin:0 0 .3rem;font-weight:800;letter-spacing:-.01em}
@@ -82,7 +123,7 @@ td.null{color:var(--faint)}
 
 .tip{position:fixed;pointer-events:none;opacity:0;transition:opacity .1s;z-index:50;
   background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:.55rem .7rem;
-  font-size:.82rem;box-shadow:0 6px 24px rgba(0,0,0,.14);min-width:170px}
+  font-size:.82rem;box-shadow:0 6px 24px rgba(0,0,0,.14) /* black in both themes by design */;min-width:170px}
 .tip b{display:block;margin-bottom:.3rem;font-size:.78rem;color:var(--faint);
   letter-spacing:.04em;text-transform:uppercase}
 .tip .r{display:flex;justify-content:space-between;gap:1.2rem;line-height:1.5}
@@ -92,7 +133,7 @@ td.null{color:var(--faint)}
 
 footer{margin-top:4rem;padding-top:1.2rem;border-top:1px solid var(--line);color:var(--faint);font-size:.8rem}
 code{font-family:var(--mono);font-size:.86em;background:var(--panel);padding:.1rem .35rem;border-radius:5px}
-@media print{body{background:#fff} .tbl-tools{display:none}}
+@media print{.theme-toggle,.no-print,.tbl-tools{display:none}}
 </style>
 
 <script>
@@ -146,6 +187,10 @@ const TIP = (() => {
 })();
 /* Read a theme token from CSS. Charts must never hardcode a hex. */
 const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+/* A chart that resolves a token in JavaScript is a function that clears its mount and
+   draws again. `onTheme(draw)` draws it now and again on every `themechange`, which
+   the theme button fires on `document`. A chart painted only with var(--token) needs none of this. */
+function onTheme(draw) { draw(); document.addEventListener('themechange', draw); }
 function legend(sel, itens) {
   const m = document.querySelector(sel);
   if (m) m.innerHTML = itens.map(i => `<span><i style="background:${i.cor}"></i>${i.nome}</span>`).join('');
@@ -155,6 +200,11 @@ function legend(sel, itens) {
 <body>
 <div class="wrap">
   <header>
+    <button type="button" class="theme-toggle no-print">
+      <svg class="i-light" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="i-dark" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="i-system" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>
+    </button>
     <div class="eyebrow">CLIENTE · ASSUNTO</div>
     <h1>TÍTULO · RECORTE</h1>
     <p class="sub">A conclusão, em no máximo duas linhas.</p>
@@ -165,5 +215,35 @@ function legend(sel, itens) {
 
   <footer>Uso interno. Contém dado de cliente.</footer>
 </div>
+<script>
+(() => {
+  const root = document.documentElement;
+  const media = matchMedia('(prefers-color-scheme: dark)');
+  const btn = document.querySelector('.theme-toggle');
+  const LABEL = { system: 'sistema', light: 'claro', dark: 'escuro' };
+  const current = () => root.dataset.theme || 'system';
+  const next = (s) => {
+    const shown = media.matches ? 'dark' : 'light';
+    const opposite = shown === 'dark' ? 'light' : 'dark';
+    return s === 'system' ? opposite : s === opposite ? shown : 'system';
+  };
+  const paint = () => {
+    const s = current();
+    btn.dataset.state = s;
+    const label = `Tema: ${LABEL[s]}. Mudar para ${LABEL[next(s)]}`;
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+  };
+  const changed = () => document.dispatchEvent(new CustomEvent('themechange'));
+  btn.addEventListener('click', () => {
+    const s = next(current());
+    if (s === 'system') { delete root.dataset.theme; try { localStorage.removeItem('theme'); } catch (e) {} }
+    else { root.dataset.theme = s; try { localStorage.setItem('theme', s); } catch (e) {} }
+    paint(); changed();
+  });
+  media.addEventListener('change', () => { paint(); if (current() === 'system') changed(); });
+  paint();
+})();
+</script>
 </body>
 </html>

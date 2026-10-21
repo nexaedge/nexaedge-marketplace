@@ -23,16 +23,17 @@ If you were not told who reads it or whose brand it wears, ask. The theme and th
 
 1. **Write the message before the markup.** One sentence per section, in order, that a reader could take away. If you cannot write that sentence, the section has no reason to exist. → `references/writing.md`
 2. **Pick the form per section from the job the data does.** Magnitude, composition, change over time, identity, a single number. Sometimes the answer is a stat tile or a sentence, not a chart. Never a chart because the section looks empty. → `references/charts.md`
-3. **Copy `assets/skeleton.html` and settle the theme.** Extract it from an earlier report if one exists, derive it from the brand color if not. Never edit anything outside the theme block to change a color. → `references/themes.md`
+3. **Copy `assets/skeleton.html` and settle the theme.** Extract it from an earlier report if one exists, derive it from the brand color if not. A theme has a light and a dark mode, each validated against its own background. Never edit anything outside the theme block to change a color. → `references/themes.md`
 4. **Aggregate, then embed.** The data goes in already reduced to what the charts read. → `references/structure.md`
 5. **Build each chart from the snippets**, in the order axis → marks → labels → hover.
-6. **Render it and look at it.** Open the file, screenshot it, read the console. The checks below are the ones that have actually broken.
+6. **Render it and look at it, in both modes.** Open the file, screenshot it, read the console, and press the theme button once to see the dark mode. The checks below are the ones that have actually broken.
 
 ## Non-negotiables
 
 - **The `<title>` is the artifact's name**, not the file name. Write what the report answers, with its scope. A report called "report" cannot be found a month later.
 - **The `.sub` under the `<h1>` renders in at most two lines, and every other `<p>` in at most four**, in a 1280px-wide viewport. Check each on the rendered page: `el.getBoundingClientRect().height <= lines * parseFloat(getComputedStyle(el).lineHeight)`. When the conclusion needs more than two lines, the `.sub` carries its first sentence and the rest opens the body, above the first section. A paragraph over four lines splits where its topic changes, or its parallel items become a list.
-- **Charts read theme tokens, never a hex.** `token('--c1')`, not `'#2a78d6'`. A theme swap that requires touching chart code is a broken theme.
+- **Charts read theme tokens, never a hex.** `token('--c1')`, not `'#2a78d6'`. A theme swap that requires touching chart code is a broken theme. A chart that resolves a token in JavaScript is drawn by a function passed to `onTheme(draw)`, so it repaints when the reader switches mode; a color outside the theme block is a token too.
+- **Every report ships light and dark.** It opens in the mode the system asks for, the header button (already in the skeleton, copied unchanged) cycles system, light and dark, and print is always light. Text over a ramp step takes `--on-lo` or `--on-hi` by `--on-flip`, never a fixed white.
 - **One axis.** Two measures of different scale become two charts or get indexed to a common base. Never a second y-scale.
 - **Colored SVG text needs `style="fill:…"`.** The stylesheet's `.chart text{fill:var(--muted)}` outranks a `fill` attribute, so an end label set by attribute renders gray. This one is silent and it will happen to you.
 - **A legend for two or more series**, plus direct labels at the line ends. One series needs no legend — the title names it.
@@ -48,10 +49,10 @@ Load the one you need, when you need it.
 |---|---|
 | `references/structure.md` | The document skeleton, embedding data, self-containment, size limits |
 | `references/charts.md` | Which form, the SVG patterns, the gotchas that cost a rebuild |
-| `references/themes.md` | The token contract, extracting a theme, deriving one, validating |
+| `references/themes.md` | The token contract, the light and dark modes, extracting a theme, deriving one, validating |
 | `references/writing.md` | Section order, headline first, glossing, the two closing sections |
 | `assets/skeleton.html` | The base file to copy |
-| `scripts/theme.mjs` | Extract, derive, check a theme. Run it; do not eyeball colors. |
+| `scripts/theme.mjs` | Extract, derive, check a theme, both modes. Run it; do not eyeball colors. |
 
 ## Composing with other skills
 

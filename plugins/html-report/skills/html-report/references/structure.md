@@ -2,7 +2,7 @@
 
 ## The skeleton
 
-Copy `assets/skeleton.html`. It is the whole contract: a theme block, ~20 classes, and four JS helpers (`F` for pt-BR formatting, `n` for SVG nodes, `TIP` for the shared hover layer, `token` for reading theme colors). Everything else you write per report.
+Copy `assets/skeleton.html`. It is the whole contract: a theme block with a light and a dark mode, the theme button and its script, ~20 classes, and five JS helpers (`F` for pt-BR formatting, `n` for SVG nodes, `TIP` for the shared hover layer, `token` for reading theme colors, `onTheme` for redrawing a chart when the mode changes). Everything else you write per report.
 
 It is deliberately not a chart library. A chart written for its data beats a generic one configured into shape, and the snippets in `charts.md` are shorter than the configuration would be.
 
@@ -13,7 +13,7 @@ The file has to render with no network, from `file://` and from inside `<iframe 
 - CSS and JS inline. No `<link>`, no `<script src>`, no CDN, no Google Fonts.
 - System font stack only. A remote font silently falls back and the layout shifts.
 - Images as `data:` URIs. An `<img src="https://…">` renders as a broken icon in the sandbox.
-- No `fetch`, no `localStorage` reads you depend on. Sandboxed origins may deny storage.
+- No `fetch`, no `localStorage` reads you depend on. Sandboxed origins may deny storage, which is why every `localStorage` call in the theme button sits in `try`/`catch`: when storage is denied the button still switches the mode, and the choice is just not remembered.
 
 Test the real thing: open the file, not the source, and check the console.
 

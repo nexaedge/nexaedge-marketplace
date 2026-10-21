@@ -38,6 +38,22 @@ for (let i = 0; i <= 4; i++) {                       // 4 gridlines is plenty
 
 `padR` is generous on purpose: it is where the direct labels live. The SVG is `width:100%;height:auto`, so it scales; never set pixel width on the element.
 
+**A chart that resolves a token in JavaScript redraws when the mode changes.** `token('--bg')`, `s.cor` taken from `token('--c1')`, the heatmap's `--on-hi` all write a resolved color into the SVG or into an inline `style`, so a switch between light and dark leaves them stale. Put the whole chart, its legend included, in one function that clears its mount first, and hand it to `onTheme`:
+
+```js
+function curva() {
+  const mount = document.querySelector('#curva');
+  const cores = [token('--c1'), token('--c2')];
+  const svg = n('svg', {viewBox: `0 0 ${w} ${h}`, role: 'img', 'aria-label': '…'});
+  // … frame, marks, labels, hover, as below …
+  mount.replaceChildren(svg);
+  legend('#curva-legend', [{nome: 'A', cor: cores[0]}, {nome: 'B', cor: cores[1]}]);
+}
+onTheme(curva);   // draws now, and again on every `themechange`
+```
+
+A chart painted only with `var(--token)` (in CSS or in a `style` attribute) follows the mode with no code. A color that is literal in the markup becomes a token with a light and a dark value, unless it is the same in both by design and says so in a comment.
+
 **Axis tick labels: do not `Math.round`.** On a scale that is not a multiple of 4 it prints duplicates — a 0 to 2.5 axis becomes `3× 2× 1× 1× 0×` and looks broken. Format for the scale you have.
 
 ## Lines
