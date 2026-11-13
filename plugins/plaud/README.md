@@ -2,48 +2,34 @@
 
 Plaud.ai records the meeting; this plugin is how that audio becomes text inside a repository.
 
-It stops at the transcript. Turning it into a note, naming the file, choosing where it goes: that is the repository's business, declared in `.plaud.json` at its root. The same skill then serves a knowledge base that indexes every recording it has ever seen and a client project that only wants the occasional call, without knowing anything about either.
+It has two parts. The **Plaud connector** is a remote MCP server at `https://plaud.nexaedge.com/mcp`: it finds a meeting by what was said in it, transcribes it on a GPU, keeps the transcript, and names the speakers whose voices it has learned. The **`plaud` skill** files that transcript in the repository you are working in, where the repository's `.plaud.json` says, under the name it uses. Turning a transcript into a note stays with the repository's own conventions.
 
 ## Install
+
+In Claude Code:
 
 ```
 /plugin marketplace add nexaedge/nexaedge-marketplace
 /plugin install plaud@nexaedge-marketplace
 ```
 
-Python 3 is the only thing that has to be installed, and it does one job: put the CLI on the machine. Everything else is [`plaud-cli`](https://github.com/jaisonerick/plaud-cli), a single Go binary. A `plaud` already on PATH is the one kept up to date; with nothing on PATH the pinned release is fetched into `~/.local/bin` (`%LOCALAPPDATA%\plaud` on Windows), matched to the platform and verified against the release's sha256, so the person whose machine it is can type the name too. No sudo, and nothing written inside the plugin directory, which is replaced on every update.
+The plugin adds the connector; `/mcp` signs in to it. Sign-in goes through Google, and only accounts on the domains the service admits get in.
 
-That binary is not code-signed. SmartScreen reacts by naming the publisher as unknown and offering *Run anyway*; the installer clears the download tag it objects to, so that normally only appears for a copy fetched by hand. **Smart App Control** is stricter and simply refuses: no *Run anyway*, no per-app exception, and the only way through is turning it off in Windows Security, which recent Windows lets you turn back on.
+In claude.ai, add the connector under Settings, Connectors, Add custom connector, with the address `https://plaud.nexaedge.com/mcp`. Any other agent takes it as a remote MCP server (streamable HTTP) at that address.
 
-What a fresh environment still needs is an authenticated account:
+Everybody signed in reads the same Plaud account, the same transcripts and one shared register of voices.
 
-| Variable | Effect |
-| :-- | :-- |
-| `PLAUD_EMAIL`, `PLAUD_PASSWORD` | Credentials for `plaud login --password`, so a machine can be set up in one step with no prompt. |
-| `PLAUD_WHISPER_URL` | Point at a different transcription service. |
-| `PLAUD_TOKEN` | Access token, standing in for `~/.config/plaud/token.json` entirely. Nothing is written to disk, which suits an ephemeral container. |
-| `PLAUD_BIN` | Use this binary instead of resolving one. |
-| `PLAUD_CLI_VERSION` | Install a different release: `latest`, or an explicit tag. |
-| `PLAUD_SETTINGS` | The file holding what you settle per repository. |
+## How a recording is transcribed
 
-**The assistant signs the user in, and never asks for a password.** When the account is not authenticated, the skill runs the login as a conversation: it asks for the email, sends a one-time code, asks for the six digits that arrived in the inbox, and stores the token. A code expires in minutes and works once, which is what makes it safe to say out loud; a password is neither. Nothing in that flow needs a browser, an open port or a visible terminal, so it behaves the same in a terminal, a desktop app, a phone or a sandbox.
+In two steps. The connector first decodes the opening minutes of the recording, so the agent learns what the meeting is about. The agent then writes a description of the meeting (who took part, how their names are spelt, their companies) from those minutes, from the repository's context document and from the calendar, and the connector transcribes the whole recording against it. The description is what makes the names in the transcript come out spelt right.
 
-Transcription is a second sign-in, to the service that does it: `plaud auth login`, with a Google account on one of the domains that service serves. It asks nothing of the machine either — a short code and a URL the person opens on any device, so the assistant conducts this one too. `doctor` reports the two on separate lines, because being signed in to one and not the other fails in the middle of a task rather than at its start.
+Every half hour the connector decodes the opening minutes of a few recordings nobody has transcribed, so a search finds most meetings by what was said at their start before anybody transcribes them.
 
-The two halves are callable separately, which is what makes it drivable by something that is not the account owner:
-
-```bash
-plaud login --send-code --email you@example.com --json   # → {"otp_token": "..."}
-plaud login --email you@example.com --otp-token <handle> --code 123456
-```
-
-`plaud login --password` still exists for unattended provisioning, and accounts created through Google, Apple or Microsoft have no password at all until one is set in the Plaud app.
-
-The resulting token is a JWT valid for months and nothing renews it, so `doctor` reports the expiry date alongside everything else it checks.
+The connector keeps every transcript it makes. Asking again for one answers in seconds, with the names as they are known that day, and decoding a recording again happens only when somebody asks for it.
 
 ## Configure the repository
 
-`.plaud.json` at the repository root says where transcripts go, what they are called, what describes them and where they belong afterwards. It is found from the working directory upwards, so it works from anywhere inside the repository. The file is optional, and so is every key in it.
+`.plaud.json` at the repository root says where transcripts go, what they are called, what describes them and where they belong afterwards. The file is optional, and so is every key in it.
 
 ```json
 {
@@ -54,55 +40,13 @@ The resulting token is a JWT valid for months and nothing renews it, so `doctor`
   "name": "{date}-{slug}.md",
   "front_matter": { "type": "Transcript" },
   "profiles": {
-    "cerc": { "tag": "PPFX - Amanda", "dest": "reunioes/{year}" }
+    "acme": { "tag": "Acme", "dest": "reunioes/{year}" }
   }
 }
 ```
 
-`context` is a file describing the work: the people, the companies, how their names are spelt. It is what makes two transcripts of the same people agree, and a thin one is better than none. `filing` points at the document that says where a transcript belongs here, which is what stops the agent inventing a destination. `scratch` is where a transcript lands when nothing names one; point it at a git-ignored directory when transcripts should not be committed as they arrive.
+`context` is a file describing the work: the people, the companies, how their names are spelt. `filing` points at the document that says where a transcript belongs here. `scratch` is where a transcript lands when nothing names a destination. `name` and `dest` are templates over `{date}`, `{year}`, `{month}`, `{day}`, `{time}`, `{slug}`, `{id}` and `{short_id}`, and a profile is a named set of those keys plus the Plaud tag that selects its recordings. `hub` turns on a catalog of every recording the repository knows about, in `catalog.jsonl` in that directory. The skill's `references/repository.md` lists every key.
 
-`name` and `dest` are templates over `{date}`, `{year}`, `{month}`, `{day}`, `{time}`, `{slug}`, `{id}` and `{short_id}`. A profile is a named set of those keys, and `plaud sync --profile cerc` brings in everything it selects.
+## Speakers
 
-**What a profile selects is not in this file.** A Plaud tag lives in one person's account, so a committed tag selects nothing for the next person who clones the repository. That half goes in `~/.config/plaud/settings.json`, is never committed, and is written with `plaud profile set cerc --tag "PPFX - Amanda"`. The settings are keyed by where the repository is hosted, so they survive a fresh clone and a second checkout, and the same file takes `defaults` for what is true of that person wherever they work. `plaud config` names the layer behind each value.
-
-An account that tags nothing takes the other route: `plaud triage` transcribes every recording nobody has placed and reports who spoke and enough of what was said to tell whose meeting it was, so the assistant can propose and the person decide. What they turn down goes in the same settings, with the reason, and stops being offered.
-
-Adding `hub` turns on the catalog:
-
-```json
-{
-  "hub": "studio/plaud",
-  "filing": "studio/plaud/plaud.md",
-  "exclude_tags": ["Client A"],
-  "exclude_reason": "handled-in-the-client-repo"
-}
-```
-
-That directory then holds `catalog.jsonl` — the source of truth, git-tracked, one JSON object per recording — and the transcripts pulled so far. Each recording carries a `status` (`pending`, `transcribed`, `filed` or `excluded`), which is what keeps the same call from being processed twice. Curation survives every refresh; only the Plaud-side fields are overwritten.
-
-`utc_offset` (hours from UTC) fixes the timezone of recording timestamps when the machine's own is not the right one.
-
-## Use
-
-Ask Claude to process a recording. It resolves the installer through `${CLAUDE_PLUGIN_ROOT}`, which prints the path to a current binary; after that everything is the CLI.
-
-```bash
-PLAUD=$("${CLAUDE_PLUGIN_ROOT}/skills/plaud/ensure_plaud")
-
-"$PLAUD" doctor                                      # both sign-ins and this repository
-"$PLAUD" config                                      # what .plaud.json resolved to
-"$PLAUD" fetch <id>                                  # into where this repository puts transcripts
-"$PLAUD" fetch <id> --to comms/2026-08-06-call/transcript.md
-"$PLAUD" profile set cerc --tag "PPFX - Amanda"       # which of your recordings feed it
-"$PLAUD" triage --since 2026-08-01                   # no tags? read them and decide
-"$PLAUD" triage skip <id> --reason "another client"
-"$PLAUD" sync --profile cerc --dry-run               # a whole set at once
-
-"$PLAUD" catalog refresh                             # catalog mode
-"$PLAUD" catalog list --unfiled --min-minutes 5
-"$PLAUD" catalog set <id> project=acme status=filed
-```
-
-A recording without a transcript is transcribed on the way through, which takes minutes rather than seconds; one that has been through the service already comes back in seconds. Speakers the service recognises come back named as `First Last (Company)`, and fetching a transcript that is already on disk brings those names up to date rather than decoding anything. Nothing here deletes anything from the account.
-
-A voice the service has never heard stays `SPEAKER_01`. `plaud speaker pending` counts those by reading the transcripts, and `plaud speaker identify` opens a page that plays the stretches where each one is speaking and takes the name, registering it as it is typed. What is learned there is a voice, so the person is recognised in every recording afterwards, however the transcript spelt them.
+A voice the register does not know stays `SPEAKER_01` in the transcript. The connector hands out a page that plays the stretches where each unnamed voice speaks and takes the name; a name given there is learned, so that person is recognised in every recording afterwards, and the skill brings the new names into the transcripts already filed.
