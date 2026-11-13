@@ -20,9 +20,9 @@ Everybody signed in to the connector reads the same recordings and the same tran
 
 The plugin adds the connector to Claude Code, and `/mcp` signs in to it. In claude.ai the user adds it under Settings, Connectors, Add custom connector, with the address `https://plaud.nexaedge.com/mcp`. Any other agent takes it as a remote MCP server (streamable HTTP) at the same address. Sign-in goes through Google, and only accounts on the domains the service admits get in.
 
-## When the Plaud session expired
+## When there is no Plaud session
 
-A tool that needs Plaud returns an error saying the Plaud session expired when the connector's shared session with Plaud lapses. Tell the user that an admin has to replace it, and go on with what needs no Plaud: `find_meeting` still searches the index as it was, and kept transcripts still read. Call `plaud_connect` only when the user asks to replace the shared session with an account that signs in to Plaud by email.
+A tool that needs Plaud returns an error saying there is no Plaud session when Plaud refuses to renew the connector's shared session. Tell the user that there is no Plaud session and that an admin has to sign in to Plaud again, and go on with what needs no Plaud: `find_meeting` still searches the index as it was, and kept transcripts still read. Call `plaud_connect` only when the user asks to replace the shared session with an account that signs in to Plaud by email.
 
 ## Bringing one recording in
 
