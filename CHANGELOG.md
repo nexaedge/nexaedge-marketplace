@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v31] - 2026-11-13
+
+### Changed
+- docs(plaud): say there is no Plaud session (#21)
+
+## [Marketplace v61] - 2026-11-13
+
+### Changed
+- docs(plaud): say there is no Plaud session (#21)
+
 ## [Plugin: plaud v30] - 2026-11-13
 
 ### Changed
