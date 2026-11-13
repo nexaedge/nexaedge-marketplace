@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: nexteno v32] - 2026-11-13
+
+### Changed
+- feat: rename the plaud plugin to nexteno (#22)
+
+## [Marketplace v62] - 2026-11-13
+
+### Changed
+- feat: rename the plaud plugin to nexteno (#22)
+
 ## [Plugin: plaud v31] - 2026-11-13
 
 ### Changed

@@ -1,6 +1,6 @@
 {
   "name": "nexteno",
-  "version": "31.0.0",
+  "version": "32.0.0",
   "description": "Turn recorded meetings, from a Plaud.ai recorder or an audio file, into text inside the repository you are working in. The nexteno connector finds a meeting by what was said in it, transcribes it and names the speakers it recognises; the skill files the transcript where the repository's own .nexteno.json says, so the same plugin serves a knowledge base and a client project without knowing either.",
   "author": {
     "name": "Jaison Erick",
