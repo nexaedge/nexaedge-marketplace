@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "plaud",
+  "name": "nexteno",
   "version": "v31",
-  "description": "Turn Plaud.ai voice recordings into text inside the repository you are working in. The Plaud connector finds a meeting by what was said in it, transcribes it and names the speakers it recognises; the skill files the transcript where the repository's own .plaud.json says, so the same plugin serves a knowledge base and a client project without knowing either.",
+  "description": "Turn recorded meetings, from a Plaud.ai recorder or an audio file, into text inside the repository you are working in. The nexteno connector finds a meeting by what was said in it, transcribes it and names the speakers it recognises; the skill files the transcript where the repository's own .nexteno.json says, so the same plugin serves a knowledge base and a client project without knowing either.",
   "author": {
     "name": "Jaison Erick",
     "email": "jaison@jaisonerick.com",
@@ -11,6 +11,7 @@
   "homepage": "https://github.com/nexaedge/nexaedge-marketplace",
   "repository": "https://github.com/nexaedge/nexaedge-marketplace",
   "keywords": [
+    "nexteno",
     "plaud",
     "recording",
     "transcript",
@@ -18,8 +19,8 @@
   ],
   "extensions": {
     "com.nexaedge.marketplace": {
-      "displayName": "Plaud",
-      "tagline": "Bring Plaud.ai voice recordings and transcripts into a repository",
+      "displayName": "nexteno",
+      "tagline": "Bring recorded meetings and their transcripts into a repository",
       "category": "Productivity",
       "platforms": [
         "claude",

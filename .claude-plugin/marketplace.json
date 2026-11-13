@@ -26,8 +26,8 @@
       "source": "./plugins/cloudflare-dns"
     },
     {
-      "name": "plaud",
-      "source": "./plugins/plaud"
+      "name": "nexteno",
+      "source": "./plugins/nexteno"
     },
     {
       "name": "vendored-skills",

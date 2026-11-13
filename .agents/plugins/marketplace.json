@@ -53,10 +53,10 @@
       "category": "Developer Tools"
     },
     {
-      "name": "plaud",
+      "name": "nexteno",
       "source": {
         "source": "local",
-        "path": "./plugins/plaud"
+        "path": "./plugins/nexteno"
       },
       "policy": {
         "installation": "AVAILABLE",

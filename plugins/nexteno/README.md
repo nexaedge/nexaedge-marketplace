@@ -1,8 +1,8 @@
-# plaud
+# nexteno
 
-Plaud.ai records the meeting; this plugin is how that audio becomes text inside a repository.
+A Plaud.ai recorder, or any audio file, records the meeting; this plugin is how that audio becomes text inside a repository.
 
-It has two parts. The **Plaud connector** is a remote MCP server at `https://plaud.nexaedge.com/mcp`: it finds a meeting by what was said in it, transcribes it on a GPU, keeps the transcript, and names the speakers whose voices it has learned. The **`plaud` skill** files that transcript in the repository you are working in, where the repository's `.plaud.json` says, under the name it uses. Turning a transcript into a note stays with the repository's own conventions.
+It has two parts. The **nexteno connector** is a remote MCP server at `https://nexteno.nexaedge.com/mcp`: it finds a meeting by what was said in it, transcribes it on a GPU, keeps the transcript, and names the speakers whose voices it has learned. The **`nexteno` skill** files that transcript in the repository you are working in, where the repository's `.nexteno.json` says, under the name it uses. Turning a transcript into a note stays with the repository's own conventions.
 
 ## Install
 
@@ -10,12 +10,12 @@ In Claude Code:
 
 ```
 /plugin marketplace add nexaedge/nexaedge-marketplace
-/plugin install plaud@nexaedge-marketplace
+/plugin install nexteno@nexaedge-marketplace
 ```
 
 The plugin adds the connector; `/mcp` signs in to it. Sign-in goes through Google, and only accounts on the domains the service admits get in.
 
-In claude.ai, add the connector under Settings, Connectors, Add custom connector, with the address `https://plaud.nexaedge.com/mcp`. Any other agent takes it as a remote MCP server (streamable HTTP) at that address.
+In claude.ai, add the connector under Settings, Connectors, Add custom connector, with the address `https://nexteno.nexaedge.com/mcp`. Any other agent takes it as a remote MCP server (streamable HTTP) at that address.
 
 Everybody signed in reads the same Plaud account, the same transcripts and one shared register of voices.
 
@@ -29,13 +29,13 @@ The connector keeps every transcript it makes. Asking again for one answers in s
 
 ## Configure the repository
 
-`.plaud.json` at the repository root says where transcripts go, what they are called, what describes them and where they belong afterwards. The file is optional, and so is every key in it.
+`.nexteno.json` at the repository root says where transcripts go, what they are called, what describes them and where they belong afterwards. The file is optional, and so is every key in it.
 
 ```json
 {
   "context": "contexto/briefing.md",
   "filing": ".agents/skills/meeting-notes/SKILL.md",
-  "scratch": "workspace/plaud",
+  "scratch": "workspace/transcripts",
   "language": "pt",
   "name": "{date}-{slug}.md",
   "front_matter": { "type": "Transcript" },

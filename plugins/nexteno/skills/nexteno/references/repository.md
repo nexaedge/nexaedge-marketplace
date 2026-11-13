@@ -1,6 +1,6 @@
 # Configuring a repository
 
-A repository that takes in more than the occasional recording declares itself in `.plaud.json` at its root, which is committed. What the file encodes is that repository's convention, so a wrong file sends every later transcript to the wrong place:
+A repository that takes in more than the occasional recording declares itself in `.nexteno.json` at its root, which is committed. What the file encodes is that repository's convention, so a wrong file sends every later transcript to the wrong place:
 
 1. **Read the repository.** Its `CLAUDE.md` or `AGENTS.md`, its skill for meeting notes or for filing documents, and how the documents already there are named and placed. Done when every key you will propose comes from something read there, or from the user.
 2. **Propose the file.** Show the user the whole file and what each key does here. Done when the user agrees to it.
@@ -12,7 +12,7 @@ Every key is optional, and so is the file. An example, for a repository whose me
 {
   "context": "contexto/briefing.md",
   "filing": ".agents/skills/meeting-notes/SKILL.md",
-  "scratch": "workspace/plaud",
+  "scratch": "workspace/transcripts",
   "language": "pt",
   "utc_offset": -3,
   "name": "{date}-{slug}.md",
