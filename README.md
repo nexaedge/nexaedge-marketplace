@@ -28,7 +28,7 @@ The `nexaedge` plugin is the front end for the other ones. It detects which agen
 | artifact-publish | ● | ● | ● | Publish a self-contained HTML file and get a link |
 | html-report | ● | ● | ● | Turn analysis into an interactive HTML report |
 | cloudflare-dns | ● | ● | ● | Manage Cloudflare DNS through Terraform |
-| plaud | ● | ● | ● | Bring Plaud.ai recordings and transcripts into a repo |
+| nexteno | ● | ● | ● | Bring recorded meetings and their transcripts into a repo |
 | vendored-skills | ● | ● | ● | Third-party skills, pinned to their upstream commit |
 | spec-plugin | ● | | | Ideation to verified code, on a team of subagents |
 | linear-spec-plugin | ● | | | The same pipeline, with Linear as system of record |

@@ -2,9 +2,9 @@
 
 ## Which recordings a profile selects
 
-A profile in `.plaud.json` says where a kind of recording is filed and what it is called; the Plaud tag in its `tag` key says which recordings are of that kind. Everybody reads the same Plaud account through the connector, so a tag selects the same recordings for everyone and belongs in the committed file.
+A profile in `.nexteno.json` says where a kind of recording is filed and what it is called; the Plaud tag in its `tag` key says which recordings are of that kind. Everybody reads the same Plaud account through the connector, so a tag selects the same recordings for everyone and belongs in the committed file.
 
-When the profile has no `tag`, read the user's settings file, `~/.config/plaud/settings.json`: `repositories`, then the repository's key, then `profiles`, then the profile's name, then `tag`. The repository's key is the host and path of its `origin` remote without the scheme or `.git` (`github.com/owner/repo`), and the root's absolute path for a repository with no remote.
+When the profile has no `tag`, read the user's settings file, `~/.config/nexteno/settings.json`: `repositories`, then the repository's key, then `profiles`, then the profile's name, then `tag`. The repository's key is the host and path of its `origin` remote without the scheme or `.git` (`github.com/owner/repo`), and the root's absolute path for a repository with no remote.
 
 When neither place gives a tag, stop and ask the user which tag selects the profile, showing the tags `list_recordings` returns on recent recordings. NEVER bring in a profile's set without its tag: the filter then selects the whole account, and another client's meetings land in this repository.
 
@@ -31,7 +31,7 @@ NEVER turn a recording down on your own judgement: a recording turned down stops
 A recording turned down stays out of every later set and every later decision in this repository. Record it with the reason the user gives, since the reason is what tells a recording that belongs to another client from a few seconds of pocket noise:
 
 - In a repository declaring `hub`, set the catalog entry's `status` to `excluded` and `excluded_reason` to the reason.
-- Elsewhere, add the recording id with the reason under `repositories`, then the repository's key, then `skipped`, in `~/.config/plaud/settings.json`. Create the file when it does not exist, and keep everything else in it.
+- Elsewhere, add the recording id with the reason under `repositories`, then the repository's key, then `skipped`, in `~/.config/nexteno/settings.json`. Create the file when it does not exist, and keep everything else in it.
 
 A recording is turned down when either place records it. Taking one back removes it from the place that records it.
 

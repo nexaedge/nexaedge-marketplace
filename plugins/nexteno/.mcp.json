@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "nexteno": {
+      "type": "http",
+      "url": "https://nexteno.nexaedge.com/mcp"
+    }
+  }
+}
