@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v30] - 2026-11-13
+
+### Changed
+- feat: file Plaud transcripts through the MCP connector (#20)
+
+## [Marketplace v60] - 2026-11-13
+
+### Changed
+- feat: file Plaud transcripts through the MCP connector (#20)
+
 ## [Plugin: html-report v6] - 2026-10-21
 
 ### Changed
