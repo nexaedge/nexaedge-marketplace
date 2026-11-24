@@ -1,0 +1,6 @@
+/* The report fonts. build.mjs embeds each file as data, so a built report never loads a font. */
+@font-face{font-family:'Instrument Sans';src:url(fonts/instrument-sans/InstrumentSans.woff2) format('woff2');font-weight:400 700;font-stretch:75% 100%;font-style:normal;font-display:block}
+@font-face{font-family:'Instrument Sans';src:url(fonts/instrument-sans/InstrumentSans-Italic.woff2) format('woff2');font-weight:400 700;font-stretch:75% 100%;font-style:italic;font-display:block}
+@font-face{font-family:'Newsreader';src:url(fonts/newsreader/Newsreader.woff2) format('woff2');font-weight:200 800;font-style:normal;font-display:block}
+@font-face{font-family:'Newsreader';src:url(fonts/newsreader/Newsreader-Italic.woff2) format('woff2');font-weight:200 800;font-style:italic;font-display:block}
+@font-face{font-family:'STIX Two Math';src:url(fonts/stix-two-math/STIXTwoMath.woff2) format('woff2');font-display:block}
