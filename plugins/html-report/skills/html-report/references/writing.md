@@ -4,7 +4,7 @@ The reader opens the link, reads for forty seconds, and either acts or closes it
 
 ## Section order
 
-1. **The answer.** The `<h1>` states it in one sentence, and the summary under it, one to three short paragraphs with no title, goes from the goal to the conclusion with the numbers in the text, not in cards (`#e-abertura` in the catalog). Someone who reads only this part must be able to repeat the conclusion correctly.
+1. **The answer.** The `<h1>` states it in one sentence, or names the decision it serves (The headline, below), and the summary under it, one to three short paragraphs with no title, goes from the goal to the conclusion with the numbers in the text, not in cards (`#e-abertura` in the catalog). Someone who reads only this part must be able to repeat the conclusion correctly.
 2. **The mechanism.** The chart that shows *why* the headline is what it is.
 3. **The other cuts.** Composition, detail, the per-entity view. One section per question the reader will actually ask.
 4. **How the number is built.** Source, grain, definitions, what was checked.
@@ -14,11 +14,19 @@ The last two are not appendices to skip. They are what makes the report survive 
 
 ## The headline
 
-Lead with the number, then the scope, then the meaning. Never the reverse.
+What the title says depends on what the report does.
+
+**A report that argues for a number or a finding opens with that conclusion.** Lead with the number, then the scope, then the meaning. Never the reverse.
 
 > **Nenhuma safra se sustenta sozinha.** O NDR não passa de 100% em nenhum ponto depois da entrada: 86% no MOB 3, 76% no MOB 6, 54% no MOB 12.
 
 Not "we analysed retention across cohorts and found interesting patterns". Say the thing.
+
+**A report that prepares a decision the reader has to take opens with the decision or the question.** The title sets the context the rest of the document is read against, and the summary right under it gives the answer with its numbers.
+
+> **Quanto crédito a rede precisa para abrir duas lojas em 2027**
+
+A title that names neither a conclusion nor a decision, such as the project's name or "análise de dados", fails both.
 
 **Four number cards, maximum.** Each is one number and a name of up to three words. A fifth card means you have not decided what the section is about.
 
