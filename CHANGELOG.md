@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: html-report v7] - 2026-11-24
+
+### Changed
+- feat: give html-report a catalog and a build step (#23)
+
+## [Marketplace v63] - 2026-11-24
+
+### Changed
+- feat: give html-report a catalog and a build step (#23)
+
 ## [Plugin: nexteno v32] - 2026-11-13
 
 ### Changed
