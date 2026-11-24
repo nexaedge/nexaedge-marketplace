@@ -1,0 +1,44 @@
+/* THEME */
+:root{
+  color-scheme: light;
+  --ink:#1a1a19; --muted:#52514e; --faint:#6b6a66;
+  --bg:#ffffff; --panel:#f7f7f5; --line:#e5e4df;
+  --accent:#1f6ac2; --brand:#2a78d6;
+  --pos:#0ca30c; --neg:#d03b3b; --warn:#b26a00;
+  --c1:#2a78d6; --c2:#eb6834; --c3:#0e9c8f; --c4:#c97a00; --c5:#6b5bc4; --c6:#c44c86;
+  --h0:#e8eef4; --h1:#c8d8e6; --h2:#9db9d2; --h3:#6f95b8;
+  --h4:#456f99; --h5:#28496e; --h6:#12263c;
+  /* --on-flip = primeiro passo da rampa em que --on-hi vence --on-lo. Medido por
+     rampa e por tema, nunca copiado de outro. No claro a rampa desce e --on-hi é
+     branco; no escuro ela sobe e --on-hi é a tinta escura. */
+  --on-lo:#1a1a19; --on-hi:#ffffff; --on-flip:4;
+}
+/* O tema escuro vale duas vezes, com o mesmo conteúdo: pela preferência do sistema
+   e pela escolha explícita no botão. Os dois ficam sob `screen`, e a impressão sai clara. */
+@media screen and (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --ink:#f0efec; --muted:#c9c8bf; --faint:#a6a49c;
+    --bg:#161615; --panel:#20201e; --line:#353430;
+    --accent:#6da7ec; --brand:#3987e5;
+    --pos:#3fb950; --neg:#f07272; --warn:#e3a33a;
+    --c1:#3987e5; --c2:#d95926; --c3:#14a596; --c4:#c98500; --c5:#9085e9; --c6:#d55181;
+    --h0:#1f2a35; --h1:#273d52; --h2:#335573; --h3:#456b92;
+    --h4:#6f95b8; --h5:#9db9d2; --h6:#cfdeeb;
+    --on-lo:#f0efec; --on-hi:#161615; --on-flip:4;
+  }
+}
+@media screen{
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --ink:#f0efec; --muted:#c9c8bf; --faint:#a6a49c;
+    --bg:#161615; --panel:#20201e; --line:#353430;
+    --accent:#6da7ec; --brand:#3987e5;
+    --pos:#3fb950; --neg:#f07272; --warn:#e3a33a;
+    --c1:#3987e5; --c2:#d95926; --c3:#14a596; --c4:#c98500; --c5:#9085e9; --c6:#d55181;
+    --h0:#1f2a35; --h1:#273d52; --h2:#335573; --h3:#456b92;
+    --h4:#6f95b8; --h5:#9db9d2; --h6:#cfdeeb;
+    --on-lo:#f0efec; --on-hi:#161615; --on-flip:4;
+  }
+}
+/* /THEME */

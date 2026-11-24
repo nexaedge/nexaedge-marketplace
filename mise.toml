@@ -1,8 +1,7 @@
 [tools]
-# No .tool-versions here and CI pins none either; this is the global asdf default
-# already in effect when a developer runs these commands in this directory.
 python = "3.14.3"
 jq = "1.7.1"
+node = "24.22.0"
 
 [tasks.generate]
 description = "Regenerate every agent's manifests from catalog.json (also the consistency check)"
@@ -10,7 +9,10 @@ run = "bin/mkt generate"
 
 [tasks.test]
 description = "Run the tests the plugins carry"
-run = "uv run --no-project --python 3.12 --with pytest pytest plugins/*/tests"
+run = [
+  "uv run --no-project --python 3.12 --with pytest pytest plugins/*/tests",
+  "node --test 'plugins/*/tests/**/*.test.mjs'",
+]
 
 [tasks.validate]
 description = "Validate the marketplace and plugin structure"

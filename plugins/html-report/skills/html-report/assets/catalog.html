@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-currency="BRL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<!-- The catalog of the html-report elements: each element with its ficha (what it is for, when
+     to use it, when not to) and a live example. references/elements.md says what to copy. -->
+<title>Os elementos de um relatório e quando usar cada um</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="theme-neutral.css">
+<link rel="stylesheet" href="report.css">
+<script src="report.js"></script>
+<style>
+/* The catalog's own frame (ficha, example box, mock screen), which never goes into a report */
+.st{display:inline-block;vertical-align:.3em;margin-left:12px;font:700 12px/1 var(--f-ui);letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;border-radius:999px;background:var(--mark);color:var(--ink);white-space:nowrap}
+p .st{vertical-align:.12em;margin:0 2px}
+.ficha{display:grid;grid-template-columns:9.5em 1fr;gap:10px 20px;font:400 16.5px/1.55 var(--f-ui);margin:4px auto 28px;padding:16px 0 0;border-top:1px solid var(--line)}
+.ficha dt{font-weight:650;color:var(--muted)}
+.ficha dd{margin:0;text-wrap:pretty}
+.ficha dd ul{margin:0;padding-left:1.1em}
+.ficha dd li{margin:0 0 .4em;padding-left:.2em}
+.s.demo{position:relative;border:1.5px dashed var(--line-strong);border-radius:16px;padding:32px 32px 14px;margin-top:0;margin-bottom:56px}
+.s > .demo{width:calc(100% + 68px);max-width:none;margin-left:-34px;margin-right:-34px}
+.demo::before{content:"Exemplo";position:absolute;top:-10px;left:24px;background:var(--bg);padding:0 8px;font:700 11.5px/18px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.demo > :first-child,.s.demo > h2:first-child{margin-top:0}
+.demo > figure:last-child,.demo > .tbl:last-child,.demo > .cards:last-child{margin-bottom:18px}
+/* The opening is the report's own markup; the dashed box is narrower than the screen the title spans, so the title takes the box's width. */
+.demo > header{max-width:none}
+.demo > header h1{width:auto}
+.next-hint{font:700 12px/1 var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-top:1px dashed var(--line-strong);padding-top:14px;margin-top:8px}
+.variant{font:700 12px/1 var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:28px 0 10px}
+.demo > .variant:first-child{margin-top:4px}
+.variant + .cards{margin-top:0;margin-bottom:8px}
+.type-hint{font:italic 400 13.5px/1.3 var(--f-ui);color:var(--muted);margin:6px 0 0}
+.un-demo{font:500 .95em var(--f-ui);font-variant-numeric:tabular-nums;white-space:nowrap}
+ul.delta-key{display:flex;flex-wrap:wrap;gap:12px 24px;list-style:none;padding:0;margin:20px auto 24px;font:500 15.5px/1.4 var(--f-ui)}
+ul.delta-key li{display:flex;align-items:center;gap:10px;margin:0;padding:0}
+.guide td.txt a{font-family:var(--f-ui)}
+@media (pointer:coarse){
+  .guide td.txt a{display:inline-block;min-width:44px;min-height:44px;padding:13px 0;line-height:18px;text-align:center}
+}
+.shot .bar{height:28px;background:var(--recess);border-bottom:1px solid var(--line);display:flex;gap:6px;align-items:center;padding:0 12px}
+.shot .bar i{width:9px;height:9px;border-radius:50%;background:var(--line-strong)}
+.shot .body{display:grid;grid-template-columns:170px 1fr;min-height:230px}
+.shot .sidebar{background:var(--recess);border-right:1px solid var(--line);padding:16px;display:grid;gap:10px;align-content:start}
+.shot .ln{height:9px;border-radius:4px;background:var(--line)}
+.shot .main{padding:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-content:start}
+.shot .blk{height:64px;border:1px solid var(--line);border-radius:8px}
+.shot .wide-blk{grid-column:1 / -1;height:96px;border:1px solid var(--line);border-radius:8px}
+.gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:8px auto 24px}
+.g-item{border:1px solid var(--line);border-radius:12px;padding:16px 16px 14px;background:var(--panel)}
+.g-item svg{display:block;width:100%;height:auto;margin-bottom:12px}
+.g-item b{display:block;font:650 16px/1.3 var(--f-ui);margin-bottom:4px}
+.g-item span{display:block;font:400 14.5px/1.45 var(--f-ui);color:var(--muted)}
+
+@media (max-width:1415px){
+  .s > .demo{width:auto;margin-left:0;margin-right:0}
+  .demo{--sn-out:56px}
+}
+@media (max-width:1000px){
+  .demo{--sn-out:0px}
+  .gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  .ficha{grid-template-columns:1fr;gap:4px}
+  .ficha dd{margin-bottom:10px}
+  .s.demo{padding:28px 12px 8px;border-radius:12px}
+  .shot .body{grid-template-columns:72px 1fr}
+  .shot .main{padding:12px;gap:8px}
+}
+@media (max-width:480px){
+  .gallery{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="topbar no-print">
+<button type="button" class="toc-btn" aria-controls="toc" aria-expanded="false">Índice</button>
+<button type="button" class="theme-toggle"></button>
+</div>
+
+<div class="page">
+  <nav class="toc" id="toc" aria-label="Índice">
+    <div class="toc-head"><div class="t">Índice</div><button type="button" class="toc-hide" aria-controls="toc"></button></div>
+    <div class="bar"><i></i></div>
+    <ol class="toc-list"></ol>
+  </nav>
+
+  <main>
+    <header>
+      <p class="eyebrow">Relatórios em HTML · Elementos</p>
+      <h1>Os elementos de um relatório e quando usar cada um</h1>
+      <div class="hdr-meta"><span>Catálogo de referência do html-report</span></div>
+    </header>
+
+    <section class="s" id="intro">
+      <h2 id="c-intro"><span class="num">Introdução</span>Como ler este catálogo</h2>
+      <p>O catálogo reúne os elementos com que se monta um relatório: os que organizam o documento, os que destacam números, os quadros de texto, as listas, os que mostram composição, processo e tempo, as comparações, os gráficos, as tabelas, as interações e as fontes. Cada elemento tem uma ficha com para que serve, quando usar e quando não usar, e um exemplo dentro da moldura tracejada, que não faz parte dele. Os números dos exemplos são ilustrativos.</p>
+      <p>O texto corrido usa a Newsreader, os títulos, números, tabelas e quadros usam a Instrument Sans, e as fórmulas, a STIX Two Math. Os elementos marcados <span class="st">Interativo</span> dependem do navegador: impressos ou em PDF, eles mostram só o estado inicial.</p>
+    </section>
+
+    <section class="s" id="guia">
+      <h2 id="c-guia"><span class="num">Guia</span>Escolher pelo que o leitor precisa</h2>
+      <p>A escolha começa pelo que o leitor vai fazer com o trecho. Dois elementos que atendem à mesma necessidade não aparecem juntos no mesmo trecho.</p>
+      <div class="tbl wide guide">
+        <table>
+          <thead><tr><th>O leitor precisa</th><th style="text-align:left">Elementos</th></tr></thead>
+          <tbody>
+            <tr><td>Saber a resposta antes da evidência</td><td class="txt"><a href="#e-abertura">Título e resumo executivo</a>, <a href="#e-cartoes">cartões de número</a>, <a href="#e-principal">número principal</a></td></tr>
+            <tr><td>Entender um termo</td><td class="txt"><a href="#e-defs">Definições</a>, <a href="#e-termo">termo com definição</a></td></tr>
+            <tr><td>Confiar numa conta</td><td class="txt"><a href="#e-passos">Passo a passo</a>, <a href="#e-formula">fórmula</a>, <a href="#e-exemplo">exemplo concreto</a>, <a href="#e-cascata">cascata</a></td></tr>
+            <tr><td>Ver de que um total é feito</td><td class="txt"><a href="#e-partes">Decomposição</a>, <a href="#e-cascata">cascata</a></td></tr>
+            <tr><td>Seguir um processo ou um caso</td><td class="txt"><a href="#e-funil">Funil</a>, <a href="#e-timeline">linha do tempo</a>, <a href="#e-fluxo">fluxo</a></td></tr>
+            <tr><td>Acompanhar no tempo</td><td class="txt"><a href="#e-progresso">Progresso contra meta</a>, <a href="#e-safras">grade com cor</a>, <a href="#e-galeria">gráficos de tempo</a></td></tr>
+            <tr><td>Comparar</td><td class="txt"><a href="#e-lado">Lado a lado</a>, <a href="#e-sensibilidade">tabela de sensibilidade</a>, <a href="#e-barra-celula">barra na célula</a>, <a href="#e-galeria">gráficos de comparação</a></td></tr>
+            <tr><td>Decidir</td><td class="txt"><a href="#e-opcoes">Opções com recomendação</a>, <a href="#e-recomendacao">recomendação</a>, <a href="#e-aberto">em aberto</a></td></tr>
+            <tr><td>Saber o que pode dar errado</td><td class="txt"><a href="#e-atencao">Atenção</a>, <a href="#e-sensibilidade">tabela de sensibilidade</a>, <a href="#e-check">lista de verificação</a></td></tr>
+            <tr><td>Consultar o valor exato</td><td class="txt"><a href="#e-tabela">Tabelas</a>, <a href="#e-interativa">tabela interativa</a>, <a href="#e-recolhido">recolhido</a></td></tr>
+            <tr><td>Explorar por conta própria</td><td class="txt"><a href="#e-abas">Abas</a>, <a href="#e-simulador">simulador</a>, <a href="#e-interativa">tabela interativa</a></td></tr>
+            <tr><td>Saber de onde vem</td><td class="txt"><a href="#e-moldura">Moldura com fonte e detalhes</a>, <a href="#e-fontes">selo de fonte</a>, <a href="#e-lateral">nota lateral</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 1 -->
+    <section class="s" id="estrutura">
+      <h2 id="c-estrutura"><span class="num">Grupo 1</span>Abertura e estrutura</h2>
+      <p>Estes elementos dizem do que é o relatório, qual é a resposta dele, onde o leitor está e quanto espaço cada bloco ocupa.</p>
+
+      <h3 id="e-abertura" data-toc="Título e resumo executivo">Título e resumo executivo</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Dar a resposta do relatório na primeira tela: o título afirma a resposta, e o resumo argumenta até ela.</dd>
+        <dt>Quando usar</dt><dd>Em todo relatório. A abertura traz o nome da organização e o assunto, e o título, que é a resposta numa frase e preenche a largura da coluna. Abaixo dele ficam a data em que o relatório foi gerado, a data até a qual os dados vão e a classificação do relatório, e uma linha separa a abertura do resumo. O resumo vem sem título próprio: de um a três parágrafos curtos que vão do objetivo à conclusão, com os números no texto. As seções começam depois dele. O exemplo mostra a abertura como ela sai no relatório, com a mesma fonte e o mesmo espaçamento, mas com o título contido na caixa tracejada: num relatório o título passa da coluna do texto, e a caixa não comporta essa largura.</dd>
+        <dt>Quando não usar</dt><dd>Um resumo que repete o título, conta a ordem das seções, aponta para elas ou põe os números em cartões.</dd>
+      </dl>
+      <div class="demo s">
+        <header>
+          <p class="eyebrow">Acme · Crédito</p>
+          <h1>Para lucrar R$&nbsp;140 mil por mês em junho de 2028, a Acme precisa de uma carteira de R$&nbsp;10,8 milhões</h1>
+          <div class="hdr-meta"><span>Gerado em 10/11/2026</span><span>Dados até 31/10/2026</span><span class="conf">Uso interno</span></div>
+        </header>
+        <section class="s">
+          <p>A meta é um lucro de R$&nbsp;140 mil por mês em junho de 2028, o que paga a expansão para duas cidades novas. Com os juros, o custo de captação, a perda e o prazo de hoje, cada real de carteira deixa 1,3% ao mês, e a meta pede uma carteira de R$&nbsp;10,8 milhões. Com outras perdas, a conta muda: R$&nbsp;9,8 milhões com perda de 1,5% ao ano e R$&nbsp;14,5 milhões com perda de 7% ao ano.</p>
+          <p>Com prazo médio de 90 dias, essa carteira pede R$&nbsp;3,6 milhões de empréstimos novos por mês, ou 120 contratos de R$&nbsp;30 mil. Os 1.440 contratos de um ano equivalem a 3,6% das 40 mil empresas da região.</p>
+        </section>
+        <p class="next-hint">A seção 1 começa aqui</p>
+      </div>
+
+      <h3 id="e-titulo" data-toc="Título de seção">Título de seção</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Dizer onde o leitor está e de que a seção trata.</dd>
+        <dt>Quando usar</dt><dd>Em toda seção depois do resumo: o número acima, na cor de destaque, e um título que nomeia o assunto ou afirma o achado. O primeiro parágrafo já explica, sem subtítulo.</dd>
+        <dt>Quando não usar</dt><dd>Um título interno para um trecho de um parágrafo só, ou um subtítulo que anuncia o que a seção vai mostrar.</dd>
+      </dl>
+      <div class="demo s">
+        <h2><span class="num">Seção 2</span>A carteira por prazo e por atraso</h2>
+        <p>Em 31/10/2026, a carteira da Acme soma R$&nbsp;8,4 mi em 312 contratos, e <span id="trecho-prazo">62% dela vence em até 60 dias</span>.</p>
+      </div>
+
+      <h3 id="e-indice" data-toc="Índice">Índice <span class="st">Interativo</span></h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar onde o leitor está e levá-lo a qualquer seção.</dd>
+        <dt>Quando usar</dt><dd>Em todo relatório com mais de quatro seções. Fica na margem esquerda quando a tela tem largura, e mostra os títulos de dentro da seção atual. O botão de recolher, um ícone de painel com uma seta para a esquerda ao lado do título do índice, tira o índice da tela, e o botão "Índice", no canto de baixo, traz de volta; a página lembra a escolha. Numa tela estreita, o botão "Índice" fica na barra do topo e abre o índice por cima da página, e o botão ao lado do título vira um X que fecha o índice. Ele também fecha ao escolher uma seção, ao tocar fora dele ou com Esc. O exemplo é o índice à esquerda desta página.</dd>
+        <dt>Quando não usar</dt><dd>Num relatório de uma tela só.</dd>
+      </dl>
+
+      <h3 id="e-apendice" data-toc="Apêndice">Apêndice</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Guardar o que só parte dos leitores precisa: o método, as premissas, as tabelas completas e as fontes.</dd>
+        <dt>Quando usar</dt><dd>Quando o corpo ficaria mais longo por causa de detalhe que não muda a conclusão. As seções do apêndice levam letras, e o corpo aponta para elas com o link no texto.</dd>
+        <dt>Quando não usar</dt><dd>Para algo de que a conclusão depende, que fica no corpo.</dd>
+      </dl>
+      <div class="demo s">
+        <h2><span class="num">Apêndice A</span>Como a perda foi medida</h2>
+        <p>A perda de uma safra é o saldo vencido há mais de 90 dias sobre o valor desembolsado nela, contado no fim de cada mês.</p>
+      </div>
+
+      <h3 id="e-largura" data-toc="Largura dos blocos">Largura dos blocos</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Dar a cada tabela, gráfico e imagem a largura que o conteúdo pede.</dd>
+        <dt>Quando usar</dt><dd><ul>
+          <li><b>Coluna de texto.</b> O texto ocupa uma coluna centrada.</li>
+          <li><b>Largura maior.</b> Uma tabela de muitas colunas ou um gráfico de muitos pontos ocupa a largura maior, centrada sobre o texto.</li>
+          <li><b>Ao lado do texto.</b> Uma tabela de poucas colunas, um gráfico pequeno ou uma imagem estreita, com até metade da coluna de texto, avança sobre a margem, à esquerda ou à direita, e o texto corre em volta dela. Fica junto do parágrafo que a comenta, e dois blocos seguidos alternam de lado. No celular, ocupa a largura toda.</li>
+          <li><b>Largura do conteúdo.</b> Um bloco largo demais para ter texto ao lado e estreito demais para a largura maior fica na largura dele, alinhado à esquerda do texto, como a tabela da barra na célula.</li>
+        </ul></dd>
+        <dt>Quando não usar</dt><dd>Pôr ao lado do texto um bloco que nenhum parágrafo próximo comenta, ou um bloco com mais de metade da coluna de texto, que deixa o texto em volta estreito demais para ler. Esticar uma tabela de duas ou três colunas até a largura maior, que afasta os números dos nomes.</dd>
+      </dl>
+      <div class="demo s">
+        <p>Em outubro, a carteira continuou concentrada em prazos de até dois meses, e a garantia, em dois tipos.</p>
+        <figure class="float left">
+          <div class="fig-head"><div class="k">Tabela 1</div><div class="t">Contratos de outubro por prazo</div></div>
+          <div class="tbl"><table>
+            <thead><tr><th>Prazo</th><th>Contratos</th><th>Parte</th></tr></thead>
+            <tbody>
+              <tr><td>Até 60 dias</td><td>54</td><td>60<span class="un">%</span></td></tr>
+              <tr><td>61 a 90 dias</td><td>27</td><td>30<span class="un">%</span></td></tr>
+              <tr><td>Acima de 90</td><td>9</td><td>10<span class="un">%</span></td></tr>
+            </tbody>
+          </table></div>
+          <figcaption class="cap"><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+        <p>Seis em cada dez contratos de outubro venciam em até 60 dias, e só um em cada dez passava de 90 dias. É essa concentração que faz a carteira girar a cada dois meses: a Acme recebe de volta em poucas parcelas o que empresta, e o mesmo dinheiro financia o contrato seguinte.</p>
+        <p>O prazo curto também reduz a perda, porque o cliente fica menos tempo exposto a um mês ruim antes de quitar. Os contratos acima de 90 dias, ainda que poucos, concentram a maior parte dos atrasos acima de 30 dias.</p>
+        <figure class="float right">
+          <div class="fig-head"><div class="k">Gráfico 1</div><div class="t">Carteira por garantia</div></div>
+          <div class="hbars">
+            <div class="hb"><span>Aval dos sócios</span><span class="hbar"><i style="width:100%"></i></span><span class="hv">44%</span></div>
+            <div class="hb"><span>Equipamento</span><span class="hbar"><i style="width:66%"></i></span><span class="hv">29%</span></div>
+            <div class="hb"><span>Estoque</span><span class="hbar"><i style="width:39%"></i></span><span class="hv">17%</span></div>
+            <div class="hb"><span>Sem garantia</span><span class="hbar"><i style="width:23%"></i></span><span class="hv">10%</span></div>
+          </div>
+          <figcaption class="cap"><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+        <p>A carteira está concentrada em duas garantias, o aval dos sócios e o equipamento, que respondem por 73% do saldo. Uma mudança na forma de executar qualquer uma delas afeta a maior parte da carteira ao mesmo tempo.</p>
+        <p>O estoque e os contratos sem garantia somam 27% do saldo. Aceitar outras garantias reduz essa dependência, mas cada uma pede uma forma própria de avaliar o bem.</p>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="s" id="numeros">
+      <h2 id="c-numeros"><span class="num">Grupo 2</span>Números em destaque</h2>
+      <p>Estes elementos põem um número à frente do texto. Uma seção destaca no máximo quatro números, somados os cartões e o número principal, e cada trecho usa um elemento só, conforme quantos números o leitor precisa guardar. Quando o número mudou e a mudança importa, ele leva a variação.</p>
+
+      <h3 id="e-cartoes" data-toc="Cartões de número">Cartões de número</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar de um a quatro números que o leitor compara de relance.</dd>
+        <dt>Quando usar</dt><dd>No começo de uma seção, quando os números se entendem só pelo nome. Cada cartão tem o número e o nome dele: o número com até 10 caracteres, contando a unidade, e o nome com até três palavras, numa linha. Quando a mudança importa, o cartão leva também a variação à direita do número, só com a seta e o tamanho da mudança, e o período de comparação aparece uma vez, acima da linha de cartões. A linha ocupa a largura das tabelas, e o número tem o mesmo tamanho com um, dois, três ou quatro cartões.</dd>
+        <dt>Quando não usar</dt><dd>Para um número que precisa de explicação, que vai para o texto, para mais de quatro números, que pedem uma tabela, ou para completar a linha com números que o trecho não usa.</dd>
+      </dl>
+      <div class="demo s">
+        <p class="variant wide">Um número</p>
+        <div class="cards one"><div class="card"><div class="v">R$&nbsp;8,4<small> mi</small></div><div class="l">Carteira</div></div></div>
+        <p class="variant wide">Dois números</p>
+        <div class="cards" style="--n:2"><div class="card"><div class="v">R$&nbsp;8,4<small> mi</small></div><div class="l">Carteira</div></div><div class="card"><div class="v">3,0%</div><div class="l">Perda em 12 meses</div></div></div>
+        <p class="variant wide">Três números</p>
+        <div class="cards" style="--n:3"><div class="card"><div class="v">R$&nbsp;8,4<small> mi</small></div><div class="l">Carteira</div></div><div class="card"><div class="v">3,0%</div><div class="l">Perda em 12 meses</div></div><div class="card"><div class="v">312</div><div class="l">Contratos ativos</div></div></div>
+        <p class="variant wide">Quatro números</p>
+        <div class="cards" style="--n:4"><div class="card"><div class="v">R$&nbsp;8,4<small> mi</small></div><div class="l">Carteira</div></div><div class="card"><div class="v">3,0%</div><div class="l">Perda em 12 meses</div></div><div class="card"><div class="v">312</div><div class="l">Contratos ativos</div></div><div class="card"><div class="v">84<small> dias</small></div><div class="l">Prazo médio</div></div></div>
+        <p class="variant wide">Com variação</p>
+        <p class="cards-base wide">Outubro de 2026, contra setembro</p>
+        <div class="cards" style="--n:4">
+          <div class="card"><div class="vd"><div class="v">R$&nbsp;8,4<small> mi</small></div><span class="delta good up">5%</span></div><div class="l">Carteira</div></div>
+          <div class="card"><div class="vd"><div class="v">3,0%</div><span class="delta bad up">0,4 ponto</span></div><div class="l">Perda em 12 meses</div></div>
+          <div class="card"><div class="vd"><div class="v">41</div><span class="delta bad down">9%</span></div><div class="l">Clientes novos</div></div>
+          <div class="card"><div class="vd"><div class="v">84<small> dias</small></div><span class="delta good down">4%</span></div><div class="l">Prazo médio</div></div>
+        </div>
+      </div>
+
+      <h3 id="e-principal" data-toc="Número principal">Número principal</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Pôr à frente o único número em que a seção se apoia, com a frase que o interpreta.</dd>
+        <dt>Quando usar</dt><dd>Quando a seção gira em torno de um número só, e o leitor precisa guardá-lo. Quando o que importa é a mudança, a variação vem à direita do número, e o período de comparação, na linha abaixo dele.</dd>
+        <dt>Quando não usar</dt><dd>Junto de cartões de número no mesmo trecho, ou para um número que só faz sentido ao lado de outros.</dd>
+      </dl>
+      <div class="demo s">
+        <p class="variant">Só o número</p>
+        <div class="stat">
+          <div class="big">62%<small>da carteira vence em 60 dias</small></div>
+          <p>A Acme recebe de volta em dois meses quase dois terços do que empresta, e por isso a carteira gira a cada dois meses.</p>
+        </div>
+        <p class="variant">Com variação</p>
+        <div class="stat">
+          <div class="big">41<span class="delta bad down">9%</span><small>clientes novos em outubro, contra 45 em setembro</small></div>
+          <p>É a primeira queda desde junho. Foram 4 clientes a menos, todos da mídia paga, enquanto os outros canais ficaram estáveis.</p>
+        </div>
+      </div>
+
+      <h3 id="e-variacao" data-toc="Variação">Variação</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Dizer quanto um número mudou, em que direção, e se a mudança é boa ou ruim.</dd>
+        <dt>Quando usar</dt><dd>Numa frase, numa tabela ou num cartão, quando o leitor compara com o período anterior ou com a meta.<ul>
+          <li>A seta dá a direção, e a cor diz se é bom ou ruim: a perda que sobe leva a seta para cima em vermelho, e o prazo que cai leva a seta para baixo em verde.</li>
+          <li>Um valor em reais, em quantidade ou em dias muda em porcentagem. Uma taxa muda em pontos: a perda que vai de 2,6% para 3,0% subiu 0,4 ponto, e não 15%.</li>
+          <li>Uma mudança pequena demais para importar, como menos de 1%, aparece como estável, em cinza.</li>
+          <li>O período de comparação aparece uma vez: na etiqueta, na frase, na linha abaixo do número principal ou acima dos cartões.</li>
+        </ul></dd>
+        <dt>Quando não usar</dt><dd>Quando o leitor não sabe contra que período a mudança é medida, ou para comparar períodos de tamanhos diferentes, como um mês contra um trimestre.</dd>
+      </dl>
+      <div class="demo s">
+        <p class="variant">Numa frase</p>
+        <p>A carteira cresceu pelo quarto mês seguido e fechou outubro em R$&nbsp;8,4 mi <span class="delta good up">5% contra setembro</span>.</p>
+        <p>Os clientes novos caíram para 41 <span class="delta bad down">9% contra setembro</span>, a primeira queda desde junho, e o ticket médio ficou em R$&nbsp;30 mil <span class="delta flat">estável</span>.</p>
+        <p class="variant">As cinco combinações</p>
+        <ul class="delta-key">
+          <li><span class="delta good up">5%</span>sobe e é bom</li>
+          <li><span class="delta bad up">0,4 ponto</span>sobe e é ruim</li>
+          <li><span class="delta good down">4%</span>cai e é bom</li>
+          <li><span class="delta bad down">9%</span>cai e é ruim</li>
+          <li><span class="delta flat">estável</span>muda menos de 1%</li>
+        </ul>
+      </div>
+
+      <h3 id="e-progresso" data-toc="Progresso contra meta">Progresso contra meta</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar quanto de uma meta já foi feito e se o ritmo basta para chegar a ela.</dd>
+        <dt>Quando usar</dt><dd>Quando há uma meta com prazo, como uma captação ou um volume do mês. A barra mostra o feito, e o traço, onde o ritmo esperado deveria estar hoje. Os rótulos do eixo têm uma ou duas palavras, e quanto falta e em quanto tempo vai na frase logo abaixo.</dd>
+        <dt>Quando não usar</dt><dd>Sem meta definida, ou para mais de três metas, que pedem o gráfico de bala.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="progress">
+          <div class="row"><span><b>R$&nbsp;2,7 mi</b> de R$&nbsp;3,6 mi</span><span>75%</span></div>
+          <div class="track"><div class="fill" style="width:75%"></div><div class="mark" style="left:77%" data-tip="Ritmo esperado em 23/11: 77%"></div></div>
+          <div class="axis"><span>Início</span><span class="mid" style="left:77%">Esperado</span><span class="end">Meta</span></div>
+        </div>
+        <p>Faltam R$&nbsp;0,9 mi em 7 dias, e os empréstimos novos do mês estão 2 pontos atrás do ritmo esperado.</p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="s" id="quadros">
+      <h2 id="c-quadros"><span class="num">Grupo 3</span>Quadros de texto</h2>
+      <p>Um quadro tira um trecho do fluxo do texto. Os três quadros de aviso (recomendação, atenção e em aberto) levam cor e são raros: no máximo um por seção, e a maioria das seções não tem nenhum, porque a recomendação e a ação vão direto no texto. Os outros quadros não levam cor, e nenhum quadro repete o parágrafo ao lado.</p>
+
+      <h3 id="e-recomendacao" data-toc="Recomendação">Recomendação</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Destacar a ação que o relatório pede, com quem decide e o prazo.</dd>
+        <dt>Quando usar</dt><dd>Só quando o relatório existe para pedir uma decisão e quem passa os olhos precisa achá-la. Uma vez no relatório, no fim da seção que a justifica. A frase em negrito é a ação, a linha de baixo diz quem decide e o prazo, e o parágrafo, o efeito esperado.</dd>
+        <dt>Quando não usar</dt><dd>Na maioria dos casos: a recomendação vai numa frase do texto. Nunca sem dono e sem prazo.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="callout rec"><div class="tag">Recomendação</div><p class="head">Limitar o prazo a 60 dias nos clientes sem histórico.</p><p class="meta">Quem decide: comitê de crédito · Até 05/12/2026</p><p>A perda esperada nesse grupo cai de 6,2% para 4,1% ao ano, com 13% a menos de volume.</p></div>
+      </div>
+
+      <h3 id="e-atencao" data-toc="Atenção">Atenção</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Avisar de um cuidado sem o qual o leitor lê o número errado.</dd>
+        <dt>Quando usar</dt><dd>Só quando ignorar o aviso leva a uma conclusão errada, como comparar uma safra que ainda não maturou. Fica colado ao número, ao gráfico ou à tabela a que se refere.</dd>
+        <dt>Quando não usar</dt><dd>Para uma ressalva que cabe numa frase do parágrafo, para uma premissa da conta, que vai para a tabela de sensibilidade, ou para uma decisão pendente, que é o quadro em aberto.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="callout warn"><div class="tag">Atenção</div><p class="head">A perda das safras de agosto e setembro ainda não maturou.</p><p>As duas têm menos de 90 dias, e a perda delas vai subir. Compare só as safras com 90 dias ou mais.</p></div>
+      </div>
+
+      <h3 id="e-aberto" data-toc="Em aberto">Em aberto</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Marcar uma decisão ainda não tomada que muda os números.</dd>
+        <dt>Quando usar</dt><dd>Só quando um número depende de uma escolha pendente. A frase em negrito diz o que está para decidir e quem decide, e a de baixo diz o que a conta supõe enquanto isso e qual é a alternativa.</dd>
+        <dt>Quando não usar</dt><dd>Quando a pendência cabe numa frase do texto, para uma dúvida sobre um dado, ou para uma tarefa.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="callout open"><div class="tag">Em aberto</div><p class="head">O custo da nova linha de captação está em negociação com o banco.</p><p>As contas usam 1,1% ao mês, a proposta mais recente. A alternativa em discussão é 0,95% ao mês com prazo de 36 meses e o equipamento dos clientes em garantia.</p></div>
+      </div>
+
+      <h3 id="e-exemplo" data-toc="Exemplo concreto">Exemplo concreto</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar uma regra aplicada a um caso, com os números do caso.</dd>
+        <dt>Quando usar</dt><dd>Logo depois de uma regra que o leitor entende melhor vendo funcionar, como o cálculo de uma oferta ou de uma parcela. Um caso, com valores redondos, terminando no resultado.</dd>
+        <dt>Quando não usar</dt><dd>Para provar que a regra vale na base, o que pede um número da base inteira.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="example">
+          <div class="ex-head"><div class="box-tag">Exemplo</div>Um cliente que pede R$&nbsp;30.000 por 90 dias, com juros de 2,9% ao mês.</div>
+          <table>
+            <tbody>
+              <tr><td>Valor emprestado</td><td><span class="un">R$</span>&nbsp;30.000</td></tr>
+              <tr><td>Juros de 3 meses</td><td>+&nbsp;<span class="un">R$</span>&nbsp;2.610</td></tr>
+              <tr><td>Tarifa de cadastro</td><td>+&nbsp;<span class="un">R$</span>&nbsp;300</td></tr>
+              <tr><td>Total a pagar</td><td><span class="un">R$</span>&nbsp;32.910</td></tr>
+              <tr class="res"><td>Parcela, em 3 meses</td><td><span class="un">R$</span>&nbsp;10.970</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <h3 id="e-citacao" data-toc="Citação">Citação</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Trazer as palavras de uma pessoa, de uma reunião ou de um documento, com quem disse e quando.</dd>
+        <dt>Quando usar</dt><dd>Quando a frase de alguém é a evidência, como a posição de um investidor ou uma regra dita numa reunião. A citação fica na fonte do texto, maior, e a atribuição vem abaixo.</dd>
+        <dt>Quando não usar</dt><dd>Para enfeitar uma seção, ou para uma frase que o próprio relatório poderia afirmar com um número.</dd>
+      </dl>
+      <div class="demo s">
+        <blockquote class="quote"><p>Prazo curto é a melhor garantia que temos: o cliente tem menos tempo para ter um mês ruim antes de quitar.</p><footer>Diretoria de crédito, na reunião de 10/11/2026</footer></blockquote>
+      </div>
+
+      <h3 id="e-passos" data-toc="Passo a passo">Passo a passo</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar, em ordem, como uma conta ou um processo chega ao resultado.</dd>
+        <dt>Quando usar</dt><dd>Quando o leitor precisa seguir a conta para confiar no resultado, e cada passo cabe numa frase. De três a cinco passos.</dd>
+        <dt>Quando não usar</dt><dd>Para itens sem ordem, ou quando o leitor vai refazer a conta com outros valores, o que pede a fórmula.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="steps"><div class="tag">Como a conta anda</div><ol>
+          <li>A carteira rende juros sobre cada real emprestado.</li>
+          <li>Saem o custo de captação, a perda e o custo operacional.</li>
+          <li>O que sobra é o lucro da Acme.</li>
+        </ol></div>
+      </div>
+
+      <h3 id="e-formula" data-toc="Fórmula">Fórmula</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Dar a equação com cada símbolo definido, para o leitor refazer a conta.</dd>
+        <dt>Quando usar</dt><dd>Quando o resultado aparece para vários valores, como numa tabela por perda, e o leitor pode querer outro valor. Os símbolos vêm explicados antes da primeira equação. Cada grandeza leva uma letra latina, de preferência a inicial do nome dela, como J para os juros e P para a perda. Uma sigla que o mercado já usa, como PD, LGD e EAD, fica em letras retas, para não parecer o produto de três letras. Uma letra grega só entra para um conceito que o mercado já conhece por ela: <math><mi>β</mi></math> para o beta de uma ação, <math><mi>σ</mi></math> para a volatilidade ou o desvio padrão, <math><mi>ρ</mi></math> para a correlação, <math><mi mathvariant="normal">Δ</mi></math> para uma variação e <math><mi>α</mi></math> para o retorno acima do mercado. Entre uma equação e a próxima, uma frase diz o passo que a conta dá, e a última equação aplica os números. O segundo exemplo, uma conta de crédito, mostra o que a fonte matemática entrega: frações dentro de frações, somatório com limites, índice e expoente na mesma letra, raiz sobre uma expressão, e parênteses e colchetes que crescem com o conteúdo.</dd>
+        <dt>Quando não usar</dt><dd>Para uma conta que o leitor só precisa entender, que é o passo a passo.</dd>
+      </dl>
+      <div class="demo s">
+        <p class="variant wide">Uma conta simples</p>
+        <div class="formula">
+          <div class="box-tag">A carteira necessária</div>
+          <dl>
+            <dt><math><mi>S</mi></math></dt><dd>Saldo de carteira necessário.</dd>
+            <dt><math><mi>L</mi></math></dt><dd>Lucro alvo por mês.</dd>
+            <dt><math><mi>J</mi></math></dt><dd>Juros que cada real de carteira rende por mês.</dd>
+            <dt><math><mi>C</mi></math></dt><dd>Custo de captação de cada real de carteira por mês.</dd>
+            <dt><math><mi>P</mi></math></dt><dd>Perda por mês: a perda ao ano dividida por 12.</dd>
+            <dt><math><mi>O</mi></math></dt><dd>Custo operacional de cada real de carteira por mês.</dd>
+            <dt><math><mi>M</mi></math></dt><dd>Margem: o que cada real de carteira deixa de lucro por mês.</dd>
+          </dl>
+          <p>Cada real de carteira rende <math><mi>J</mi></math> por mês. Desses juros saem o custo de captação, a perda e o custo operacional, e o que sobra é a margem:</p>
+          <div class="eq"><math display="block"><mrow><mi>M</mi><mo>=</mo><mi>J</mi><mo>−</mo><mi>C</mi><mo>−</mo><mi>P</mi><mo>−</mo><mi>O</mi></mrow></math></div>
+          <p>Com os números de hoje, perda de 3% ao ano e prazo médio de 90 dias, a margem fica em 1,3% ao mês:</p>
+          <div class="eq"><math display="block"><mrow><mi>M</mi><mo>=</mo><mn>2,9%</mn><mo>−</mo><mn>1,1%</mn><mo>−</mo><mn>0,25%</mn><mo>−</mo><mn>0,25%</mn><mo>=</mo><mn>1,3%</mn></mrow></math></div>
+          <p>A carteira dá o lucro alvo quando o que ela deixa no mês chega a <math><mi>L</mi></math>. Por isso o saldo necessário é o lucro alvo dividido pela margem:</p>
+          <div class="eq"><math display="block"><mrow><mi>S</mi><mo>·</mo><mi>M</mi><mo>=</mo><mi>L</mi><mspace width="1.4em"></mspace><mo stretchy="false">⟹</mo><mspace width="1.4em"></mspace><mi>S</mi><mo>=</mo><mfrac><mi>L</mi><mi>M</mi></mfrac></mrow></math></div>
+          <p>Para um lucro alvo de R$&nbsp;140 mil por mês:</p>
+          <div class="eq"><math display="block"><mrow><mi>S</mi><mo>=</mo><mfrac><mtext>R$ 140 mil</mtext><mn>1,3%</mn></mfrac><mo>≈</mo><mtext>R$ 10,8 mi</mtext></mrow></math></div>
+        </div>
+        <p class="variant wide">Uma conta de crédito</p>
+        <div class="formula">
+          <div class="box-tag">Quanto vale um empréstimo, descontada a perda</div>
+          <dl>
+            <dt><math><mi>D</mi></math></dt><dd>Valor emprestado.</dd>
+            <dt><math><mi>i</mi></math></dt><dd>Juros do contrato por mês.</dd>
+            <dt><math><mi>n</mi></math></dt><dd>Número de parcelas mensais.</dd>
+            <dt><math><mi>F</mi></math></dt><dd>Valor de cada parcela.</dd>
+            <dt><math><mi>t</mi></math></dt><dd>Mês do contrato, de 1 a <math><mi>n</mi></math>. Uma grandeza com <math><mi>t</mi></math> embaixo, como <math><msub><mi mathvariant="normal">PE</mi><mi>t</mi></msub></math>, é a daquele mês.</dd>
+            <dt><math><mi mathvariant="normal">PD</mi></math></dt><dd>Probabilidade de o cliente deixar de pagar no mês.</dd>
+            <dt><math><mi mathvariant="normal">LGD</mi></math></dt><dd>Parte do saldo que não se recupera quando o cliente deixa de pagar.</dd>
+            <dt><math><mi mathvariant="normal">EAD</mi></math></dt><dd>Saldo devedor exposto no mês.</dd>
+            <dt><math><mi mathvariant="normal">PE</mi></math></dt><dd>Perda esperada no mês.</dd>
+            <dt><math><mi>r</mi></math></dt><dd>Taxa de desconto por mês, o custo de captação.</dd>
+            <dt><math><mi mathvariant="normal">VPL</mi></math></dt><dd>Valor presente líquido do empréstimo.</dd>
+            <dt><math><mi>N</mi></math></dt><dd>Número de empréstimos da carteira.</dd>
+            <dt><math><mi>ρ</mi></math></dt><dd>Correlação da inadimplência entre dois empréstimos quaisquer da carteira.</dd>
+            <dt><math><mi>σ</mi></math></dt><dd>Desvio padrão da perda da carteira: o quanto ela costuma se afastar da perda esperada.</dd>
+          </dl>
+          <p>O contrato devolve o valor emprestado em <math><mi>n</mi></math> parcelas iguais. Cada parcela é o valor emprestado dividido pelo valor presente de uma parcela de R$&nbsp;1 por mês, que se escreve de duas formas equivalentes:</p>
+          <div class="eq"><math display="block"><mrow><mi>F</mi><mo>=</mo><mi>D</mi><mo>·</mo><mrow><mo>[</mo><mfrac><mi>i</mi><mrow><mn>1</mn><mo>−</mo><msup><mrow><mo>(</mo><mn>1</mn><mo>+</mo><mi>i</mi><mo>)</mo></mrow><mrow><mo>−</mo><mi>n</mi></mrow></msup></mrow></mfrac><mo>]</mo></mrow><mo>=</mo><mfrac><mi>D</mi><mrow><mo>(</mo><mfrac><mrow><mn>1</mn><mo>−</mo><msup><mrow><mo>(</mo><mn>1</mn><mo>+</mo><mi>i</mi><mo>)</mo></mrow><mrow><mo>−</mo><mi>n</mi></mrow></msup></mrow><mi>i</mi></mfrac><mo>)</mo></mrow></mfrac></mrow></math></div>
+          <p>Em cada mês <math><mi>t</mi></math>, a perda esperada é a chance de o cliente deixar de pagar, vezes a parte do saldo que não se recupera, vezes o saldo exposto naquele mês:</p>
+          <div class="eq"><math display="block"><mrow><msub><mi mathvariant="normal">PE</mi><mi>t</mi></msub><mo>=</mo><msub><mi mathvariant="normal">PD</mi><mi>t</mi></msub><mo>×</mo><mi mathvariant="normal">LGD</mi><mo>×</mo><msub><mi mathvariant="normal">EAD</mi><mi>t</mi></msub></mrow></math></div>
+          <p>Em cada mês, o credor recebe a parcela menos a perda esperada. Cada valor desses é trazido ao presente à taxa <math><mi>r</mi></math>, os <math><mi>n</mi></math> meses se somam, e o valor emprestado sai da soma:</p>
+          <div class="eq"><math display="block"><mrow><mi mathvariant="normal">VPL</mi><mo>=</mo><mrow><mo form="prefix">−</mo><mi>D</mi></mrow><mo>+</mo><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mfrac><mrow><mi>F</mi><mo>−</mo><msub><mi mathvariant="normal">PE</mi><mi>t</mi></msub></mrow><msup><mrow><mo>(</mo><mn>1</mn><mo>+</mo><mi>r</mi><mo>)</mo></mrow><mi>t</mi></msup></mfrac></mrow></math></div>
+          <p>O empréstimo compensa quando <math><mrow><mi mathvariant="normal">VPL</mi><mo>≥</mo><mn>0</mn></mrow></math>. Essa conta usa a perda esperada, que é uma média. Para saber o quanto a perda de <math><mi>N</mi></math> empréstimos iguais se afasta dela, conta a correlação <math><mi>ρ</mi></math>, que vai de 0, quando os clientes falham cada um por si, a 1, quando falham todos juntos: <math><mrow><mn>0</mn><mo>≤</mo><mi>ρ</mi><mo>≤</mo><mn>1</mn></mrow></math>. A variância da perda da carteira é:</p>
+          <div class="eq"><math display="block"><mrow><msubsup><mi>σ</mi><mi>N</mi><mn>2</mn></msubsup><mo>=</mo><msup><mi mathvariant="normal">LGD</mi><mn>2</mn></msup><mo>·</mo><msup><mi mathvariant="normal">EAD</mi><mn>2</mn></msup><mo>·</mo><mi>N</mi><mo>·</mo><mi mathvariant="normal">PD</mi><mrow><mo>(</mo><mn>1</mn><mo>−</mo><mi mathvariant="normal">PD</mi><mo>)</mo></mrow><mrow><mo>[</mo><mn>1</mn><mo>+</mo><mrow><mo>(</mo><mi>N</mi><mo>−</mo><mn>1</mn><mo>)</mo></mrow><mi>ρ</mi><mo>]</mo></mrow></mrow></math></div>
+          <p>O desvio padrão é a raiz dessa variância:</p>
+          <div class="eq"><math display="block"><mrow><msub><mi>σ</mi><mi>N</mi></msub><mo>=</mo><mi mathvariant="normal">LGD</mi><mo>·</mo><mi mathvariant="normal">EAD</mi><mo>·</mo><msqrt><mrow><mi>N</mi><mo>·</mo><mi mathvariant="normal">PD</mi><mrow><mo>(</mo><mn>1</mn><mo>−</mo><mi mathvariant="normal">PD</mi><mo>)</mo></mrow><mrow><mo>[</mo><mn>1</mn><mo>+</mo><mrow><mo>(</mo><mi>N</mi><mo>−</mo><mn>1</mn><mo>)</mo></mrow><mi>ρ</mi><mo>]</mo></mrow></mrow></msqrt></mrow></math></div>
+          <p>Para 100 empréstimos de R$&nbsp;30 mil, com inadimplência de 2% ao mês, perda de 50% sobre o saldo e correlação de 0,2:</p>
+          <div class="eq"><math display="block"><mrow><msub><mi>σ</mi><mi>N</mi></msub><mo>=</mo><mn>0,5</mn><mo>×</mo><mtext>R$&nbsp;30 mil</mtext><mo>×</mo><msqrt><mrow><mn>100</mn><mo>·</mo><mn>0,02</mn><mo>·</mo><mrow><mo>(</mo><mn>1</mn><mo>−</mo><mn>0,02</mn><mo>)</mo></mrow><mo>·</mo><mrow><mo>[</mo><mn>1</mn><mo>+</mo><mrow><mo>(</mo><mn>100</mn><mo>−</mo><mn>1</mn><mo>)</mo></mrow><mo>·</mo><mn>0,2</mn><mo>]</mo></mrow></mrow></msqrt><mo>≈</mo><mtext>R$&nbsp;96 mil</mtext></mrow></math></div>
+        </div>
+      </div>
+
+      <h3 id="e-defs" data-toc="Definições">Definições</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Definir, antes dos números, os termos de que eles dependem.</dd>
+        <dt>Quando usar</dt><dd>Uma vez, logo depois do resumo, com os termos que mais de uma seção usa. Cada termo é definido só ali.</dd>
+        <dt>Quando não usar</dt><dd>Para um termo que só uma seção usa, que se explica na frase em que aparece ou com o termo com definição.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="defs"><div class="box-tag">Os termos do relatório</div><dl>
+          <dt>Safra</dt><dd>Os contratos desembolsados num mesmo mês.</dd>
+          <dt>Mês de vida</dt><dd>Os meses desde o desembolso de uma safra.</dd>
+          <dt>Perda</dt><dd>O saldo vencido há mais de 90 dias sobre o valor desembolsado.</dd>
+          <dt>Margem</dt><dd>O que cada real de carteira deixa de lucro por mês, depois da captação, da perda e do custo operacional.</dd>
+        </dl></div>
+      </div>
+
+      <h3 id="e-opcoes" data-toc="Opções com recomendação">Opções com recomendação</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Pôr lado a lado os caminhos de uma decisão, com o que cada um ganha e perde, e o recomendado marcado.</dd>
+        <dt>Quando usar</dt><dd>Quando o relatório prepara uma decisão entre duas a quatro alternativas. Cada opção tem o nome, os ganhos, as perdas e o custo, na mesma ordem.</dd>
+        <dt>Quando não usar</dt><dd>Quando só uma opção é viável: ela vai numa frase do texto.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="options wide">
+          <div class="opt rec"><span class="badge">Recomendada</span><h4>A · Emissão de debêntures</h4><ul><li class="pro">Custo menor que o da linha bilateral</li><li class="pro">Cresce com a carteira</li><li class="con">Leva de 4 a 6 meses para emitir</li></ul><div class="cost">1,1% ao mês</div></div>
+          <div class="opt"><h4>B · Linha bilateral com banco</h4><ul><li class="pro">Contratação rápida</li><li class="con">Pede garantia adicional</li><li class="con">Prazo de 18 meses</li></ul><div class="cost">CDI + 6,5% ao ano</div></div>
+          <div class="opt"><h4>C · Capital próprio</h4><ul><li class="pro">Sem custo de juros</li><li class="con">Dilui os sócios</li><li class="con">Limitado ao caixa</li></ul><div class="cost">Custo de capital</div></div>
+        </div>
+      </div>
+
+      <h3 id="e-faq" data-toc="Perguntas e respostas">Perguntas e respostas <span class="st">Interativo</span></h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Responder às objeções que o leitor provavelmente vai levantar.</dd>
+        <dt>Quando usar</dt><dd>No fim de um relatório para quem vai questionar, como um investidor, com as perguntas que já foram feitas ou que se espera. A pergunta fica visível, e a resposta abre ao clicar.</dd>
+        <dt>Quando não usar</dt><dd>Para conteúdo que todo leitor precisa, que vai no corpo.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="faq">
+          <details open><summary>Por que a perda cai quando o empréstimo vive menos?</summary><p>Porque o cliente fica menos tempo exposto a um mês ruim antes de quitar, e cada parcela paga reduz o saldo em risco.</p></details>
+          <details><summary>O que acontece se a receita do cliente cair 30%?</summary><p>Parte das parcelas atrasa, e a que passa de 90 dias vira perda. A seção 8 mede esse caso.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="s" id="listas">
+      <h2 id="c-listas"><span class="num">Grupo 4</span>Listas e etiquetas</h2>
+      <p>Uma lista agrupa itens do mesmo tipo, e uma etiqueta marca o estado de um item em poucas palavras.</p>
+
+      <h3 id="e-itens" data-toc="Itens com título">Itens com título</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Apresentar itens paralelos, cada um com um nome que o leitor procura.</dd>
+        <dt>Quando usar</dt><dd>Quando os itens são do mesmo tipo, como as regras de um produto, e cada um se explica em uma a três frases. O título do item é o nome da coisa, terminado em ponto.</dd>
+        <dt>Quando não usar</dt><dd>Para passos em ordem, que são o passo a passo, para premissas com cenários, que pedem uma tabela, ou para itens de uma palavra, que cabem numa frase.</dd>
+      </dl>
+      <div class="demo s">
+        <ul>
+          <li><span class="lead-item">O prazo.</span> O contrato se paga em três parcelas mensais, a última 90 dias depois do desembolso.</li>
+          <li><span class="lead-item">A garantia.</span> Os sócios assinam como avalistas, e o equipamento financiado fica alienado à Acme até a quitação.</li>
+        </ul>
+      </div>
+
+      <h3 id="e-check" data-toc="Lista de verificação">Lista de verificação</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar, critério a critério, o que atende e o que não atende a uma regra.</dd>
+        <dt>Quando usar</dt><dd>Quando há limites fixos para conferir, como as condições de uma linha de captação ou os critérios de um parceiro. Cada linha tem o critério, o valor medido e o limite.</dd>
+        <dt>Quando não usar</dt><dd>Para critérios sem limite numérico ou sem resposta de sim ou não.</dd>
+      </dl>
+      <div class="demo s">
+        <ul class="check">
+          <li><span class="ic ok" role="img" aria-label="Atende"></span><span>Capital próprio sobre a carteira</span><span class="val">22%<small>mínimo de 20%</small></span></li>
+          <li><span class="ic ok" role="img" aria-label="Atende"></span><span>Concentração no maior cliente</span><span class="val">1,2%<small>máximo de 2%</small></span></li>
+          <li><span class="ic no" role="img" aria-label="Não atende"></span><span>Atraso acima de 60 dias</span><span class="val">4,1%<small>máximo de 3,5%</small></span></li>
+        </ul>
+      </div>
+
+      <h3 id="e-passos-prox" data-toc="Próximos passos">Próximos passos</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Listar o que cada pessoa faz a seguir, com prazo e estado.</dd>
+        <dt>Quando usar</dt><dd>No fim de um relatório de acompanhamento, como o de um projeto ou de uma negociação. Uma linha por ação, com o responsável, o prazo e a etiqueta de status.</dd>
+        <dt>Quando não usar</dt><dd>Num relatório de análise que não pede ação.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="tbl wide">
+          <table>
+            <thead><tr><th>Ação</th><th style="text-align:left">Responsável</th><th>Prazo</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Enviar a proposta ao banco</td><td class="txt">Financeiro</td><td>28/11</td><td><span class="status ok">Feito</span></td></tr>
+              <tr><td>Fechar o custo da linha com o banco</td><td class="txt">Financeiro</td><td>05/12</td><td><span class="status risk">Em risco</span></td></tr>
+              <tr><td>Aprovar o contrato da linha</td><td class="txt">Jurídico</td><td>15/12</td><td><span class="status todo">A fazer</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <h3 id="e-status" data-toc="Etiqueta de status">Etiqueta de status</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Dizer o estado de um item em uma ou duas palavras.</dd>
+        <dt>Quando usar</dt><dd>Em listas de ações, de metas ou de critérios. As quatro cores ficam reservadas a estes estados, sempre com o texto ao lado da cor.</dd>
+        <dt>Quando não usar</dt><dd>Para categorias que não são estado, como o canal ou o produto, que usam as cores das séries.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="chips"><span class="status ok">Feito</span><span class="status risk">Em risco</span><span class="status late">Atrasado</span><span class="status todo">A fazer</span></div>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="s" id="processo">
+      <h2 id="c-processo"><span class="num">Grupo 5</span>Composição, processo e tempo</h2>
+      <p>Estes elementos mostram de que um número é feito, por que etapas uma população passa e em que ordem as coisas acontecem.</p>
+
+      <h3 id="e-partes" data-toc="Decomposição">Decomposição</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar de que partes se compõe um total.</dd>
+        <dt>Quando usar</dt><dd>Quando um número é a soma de grupos com causas diferentes e o leitor precisa ver o peso de cada um. Cada parte tem uma cor, na ordem das cores de série, e o número sobre o pedaço da barra que ele mede e a descrição logo abaixo, os três alinhados pelo começo do pedaço. As partes somam o total.</dd>
+        <dt>Quando não usar</dt><dd>Para grupos que se sobrepõem, para mais de quatro partes, ou quando uma parte tem menos de 15% do total e não sobra espaço para a descrição: esses casos pedem barras ordenadas.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide">
+          <div class="fig-head"><div class="k">Gráfico 2</div><div class="t">Os 240 pedidos recusados em outubro, por motivo</div></div>
+          <ul class="legend"><li><i style="background:var(--c1)"></i>Sem garantia</li><li><i style="background:var(--c2)"></i>Score baixo</li><li><i style="background:var(--c3)"></i>Restrição no CNPJ</li></ul>
+          <div class="parts">
+            <div class="part" style="--w:50" data-tip="Sem garantia aceita: 120 de 240"><div class="pv">120<small>50%</small></div><div class="pb" style="background:var(--c1)"></div><div class="pl">não têm aval nem bem para dar em garantia</div></div>
+            <div class="part" style="--w:30" data-tip="Score abaixo do corte: 72 de 240"><div class="pv">72<small>30%</small></div><div class="pb" style="background:var(--c2)"></div><div class="pl">têm score abaixo do corte</div></div>
+            <div class="part" style="--w:20" data-tip="Restrição no CNPJ: 48 de 240"><div class="pv">48<small>20%</small></div><div class="pb" style="background:var(--c3)"></div><div class="pl">têm restrição no CNPJ</div></div>
+          </div>
+          <figcaption class="cap"><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+      </div>
+
+      <h3 id="e-cascata" data-toc="Cascata">Cascata</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Levar de um número a outro, somando e subtraindo uma parte por vez.</dd>
+        <dt>Quando usar</dt><dd>Quando o leitor precisa ver para onde vai cada parte de um resultado, como dos juros da carteira ao lucro do mês, ou por que um total mudou de um mês para o outro. A chave diz qual cor é total e qual é saída.</dd>
+        <dt>Quando não usar</dt><dd>Para partes que não se somam em sequência, que são uma decomposição.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide">
+          <div class="fig-head"><div class="k">Gráfico 3</div><div class="t">Dos juros da carteira ao lucro, em setembro (R$&nbsp;mil)</div></div>
+          <ul class="legend"><li><i style="background:var(--c1)"></i>Total</li><li><i style="background:var(--c2)"></i>Saída</li></ul>
+          <div class="chart" id="chart-waterfall"></div>
+          <figcaption class="cap"><p class="cap-src"><span>Fonte: dados internos/2026</span><button type="button" class="details" data-modal="m-cascata">Detalhes da análise</button></p></figcaption>
+        </figure>
+      </div>
+
+      <h3 id="e-funil" data-toc="Funil">Funil</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar quanto sobra em cada etapa de um processo, e onde se perde mais.</dd>
+        <dt>Quando usar</dt><dd>Para etapas em sequência, em que cada uma só recebe quem passou da anterior, como pedido, análise, oferta e contratação. Entre as etapas, a parte que passa.</dd>
+        <dt>Quando não usar</dt><dd>Quando as etapas não são uma sequência, ou quando um caso pode pular uma etapa.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide">
+          <div class="fig-head"><div class="k">Gráfico 4</div><div class="t">Do pedido à contratação, em outubro</div></div>
+          <div class="funnel">
+            <div class="f-row"><span class="lab">Pedidos</span><span class="barw"><i style="width:100%"></i></span><span class="num">600</span></div>
+            <div class="f-row"><span></span><span class="conv">60% passam na análise</span><span></span></div>
+            <div class="f-row"><span class="lab">Aprovados</span><span class="barw"><i style="width:60%"></i></span><span class="num">360</span></div>
+            <div class="f-row"><span></span><span class="conv">50% recebem oferta</span><span></span></div>
+            <div class="f-row"><span class="lab">Com oferta</span><span class="barw"><i style="width:30%"></i></span><span class="num">180</span></div>
+            <div class="f-row"><span></span><span class="conv">50% contratam</span><span></span></div>
+            <div class="f-row"><span class="lab">Contratam</span><span class="barw"><i style="width:15%"></i></span><span class="num">90</span></div>
+          </div>
+          <figcaption class="cap"><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+      </div>
+
+      <h3 id="e-timeline" data-toc="Linha do tempo">Linha do tempo</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar a ordem e as datas dos eventos de um caso ou de um projeto.</dd>
+        <dt>Quando usar</dt><dd>Quando o leitor precisa saber o que aconteceu antes de quê, como a vida de um contrato ou as etapas de uma estruturação. O ponto vazio marca o que ainda não aconteceu.</dd>
+        <dt>Quando não usar</dt><dd>Para eventos sem data, ou para uma série de números ao longo do tempo, que é um gráfico de linha.</dd>
+      </dl>
+      <div class="demo s">
+        <ol class="timeline">
+          <li><time>02/09</time><span class="dot"></span><div><b>Contrato</b><span class="d">O cliente assina o contrato e recebe o valor.</span></div></li>
+          <li><time>02/10</time><span class="dot"></span><div><b>Primeira parcela</b><span class="d">O cliente paga a primeira de três parcelas.</span></div></li>
+          <li><time>03/11</time><span class="dot"></span><div><b>Segunda parcela</b><span class="d">Paga com um dia de atraso, sem multa.</span></div></li>
+          <li class="next"><time>02/12</time><span class="dot"></span><div><b>Vencimento</b><span class="d">A última parcela quita o contrato.</span></div></li>
+        </ol>
+      </div>
+
+      <h3 id="e-fluxo" data-toc="Fluxo">Fluxo</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar por onde passam o dinheiro, um documento ou uma informação, entre quem.</dd>
+        <dt>Quando usar</dt><dd>Quando o leitor precisa entender quem participa e o que vai de um para o outro, como o caminho do dinheiro de quem empresta à empresa. Caixas para quem participa, setas com o que passa. Para um processo com muitas pessoas e sistemas, o fluxograma com raias.</dd>
+        <dt>Quando não usar</dt><dd>Para quantidades, que pedem um gráfico, ou para mais de seis participantes num desenho só.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide flow">
+          <div class="fig-head"><div class="k">Figura 1</div><div class="t">Como o dinheiro passa entre os credores, a Acme, a cobrança e o cliente</div></div>
+          <ul class="legend"><li><i style="background:var(--c1)"></i>Dinheiro que sai</li><li><i style="background:var(--c3)"></i>Dinheiro que volta</li></ul>
+          <div class="chart">
+          <svg viewBox="0 0 880 230" role="img" aria-label="Fluxo do dinheiro entre os credores, a Acme, a cobrança e o cliente">
+            <defs>
+              <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--c1)"/></marker>
+              <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--c3)"/></marker>
+            </defs>
+            <rect class="box" x="8" y="40" width="170" height="64" rx="10"/><text class="bt" x="93" y="70" text-anchor="middle">Credores</text><text class="bs" x="93" y="90" text-anchor="middle">banco e debenturistas</text>
+            <rect class="box" x="238" y="40" width="170" height="64" rx="10"/><text class="bt" x="323" y="70" text-anchor="middle">Acme</text><text class="bs" x="323" y="90" text-anchor="middle">aprova e empresta</text>
+            <rect class="box" x="468" y="40" width="170" height="64" rx="10"/><text class="bt" x="553" y="70" text-anchor="middle">Banco cobrador</text><text class="bs" x="553" y="90" text-anchor="middle">emite os boletos</text>
+            <rect class="box" x="698" y="40" width="170" height="64" rx="10"/><text class="bt" x="783" y="70" text-anchor="middle">Cliente</text><text class="bs" x="783" y="90" text-anchor="middle">toma o empréstimo</text>
+            <line x1="180" y1="72" x2="234" y2="72" stroke="var(--c1)" stroke-width="2" marker-end="url(#arr)"/><text class="lbl" x="207" y="30" text-anchor="middle">emprestam</text>
+            <line x1="410" y1="72" x2="464" y2="72" stroke="var(--c1)" stroke-width="2" marker-end="url(#arr)"/><text class="lbl" x="437" y="30" text-anchor="middle">registra</text>
+            <line x1="640" y1="72" x2="694" y2="72" stroke="var(--c1)" stroke-width="2" marker-end="url(#arr)"/><text class="lbl" x="667" y="30" text-anchor="middle">cobra</text>
+            <path d="M783,106 V170 H323 V108" fill="none" stroke="var(--c3)" stroke-width="2" marker-end="url(#arr2)"/><text class="lbl" x="553" y="162" text-anchor="middle">as parcelas pagas voltam à Acme</text>
+            <path d="M300,106 V200 H93 V108" fill="none" stroke="var(--c3)" stroke-width="2" marker-end="url(#arr2)"/><text class="lbl" x="196" y="192" text-anchor="middle">juros e amortização</text>
+          </svg>
+          </div>
+          <figcaption class="cap"><p class="cap-src">Fonte: contratos de captação da Acme</p></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="s" id="comparacao">
+      <h2 id="c-comparacao"><span class="num">Grupo 6</span>Comparação</h2>
+      <p>Estes elementos põem duas versões, dois cenários ou várias combinações de premissas uma ao lado da outra.</p>
+
+      <h3 id="e-lado" data-toc="Lado a lado">Lado a lado</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Comparar duas versões do mesmo objeto, linha com linha.</dd>
+        <dt>Quando usar</dt><dd>Para antes e depois, regra atual e proposta, real e simulado. As duas colunas têm as mesmas linhas, na mesma ordem, e o que muda fica marcado.</dd>
+        <dt>Quando não usar</dt><dd>Para mais de três versões, que pedem uma tabela.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="side wide">
+          <div><h4>Regra atual</h4><dl><dt>Limite</dt><dd>15% da receita anual</dd><dt>Prazo</dt><dd>90 dias</dd><dt>Taxa</dt><dd>2,9% ao mês</dd><dt>Garantia</dt><dd>Aval dos sócios</dd></dl></div>
+          <div><h4>Regra proposta</h4><dl><dt>Limite</dt><dd class="chg">20% da receita anual</dd><dt>Prazo</dt><dd class="chg">120 dias</dd><dt>Taxa</dt><dd>2,9% ao mês</dd><dt>Garantia</dt><dd class="chg">Aval ou equipamento</dd></dl></div>
+        </div>
+      </div>
+
+      <h3 id="e-sensibilidade" data-toc="Tabela de sensibilidade">Tabela de sensibilidade</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar como um resultado muda com duas premissas ao mesmo tempo.</dd>
+        <dt>Quando usar</dt><dd>Quando o resultado depende de duas premissas incertas, como a perda e o prazo. Uma premissa nas linhas, a outra nas colunas, a cor do menor para o maior, e o caso base contornado. Ao passar o mouse ou tocar, a célula ganha um contorno na cor de destaque e mostra o valor, e a linha não muda de cor.</dd>
+        <dt>Quando não usar</dt><dd>Para uma premissa só, que pede uma tabela comum, ou para três, que pedem o simulador.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide">
+          <div class="fig-head"><div class="k">Tabela 2</div><div class="t">Carteira necessária para lucrar R$&nbsp;140 mil por mês, por perda e prazo (R$&nbsp;mi)</div></div>
+          <div class="tbl heat"><table id="sens"></table></div>
+          <figcaption class="cap"><p><b>Como ler.</b> Quanto mais forte a cor, maior a carteira necessária. O contorno marca o caso base.</p><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section class="s" id="graficos">
+      <h2 id="c-graficos"><span class="num">Grupo 7</span>Gráficos e imagens</h2>
+      <p>Um gráfico mostra uma forma que a tabela esconde. A forma sai da pergunta: comparar, ver a distribuição, acompanhar no tempo ou ver a composição.</p>
+
+      <h3 id="e-moldura" data-toc="Moldura e legenda">Moldura e legenda de gráfico, tabela e figura</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Dar a todo gráfico, tabela e figura a mesma moldura, para o leitor saber o que olha e de onde vem.</dd>
+        <dt>Regras</dt><dd><ul>
+          <li>Acima, o número na sequência do relatório, cada tipo com a sua (Gráfico 1, Tabela 1, Figura 1 para diagramas e imagens), e um título de uma linha que diz o que ele mostra.</li>
+          <li>A chave de cores, numa caixa acima do desenho, sempre que o desenho usa mais de uma cor. Ela tem no máximo seis entradas, contando "Outros", na ordem fixa das cores de série, e cada nome tem até três palavras, cerca de 20 caracteres, numa linha. O que passar de seis se soma em "Outros", em cinza, ou o gráfico se divide em gráficos menores.</li>
+          <li>Abaixo, a nota de leitura, quando o desenho tem uma convenção que o leitor não adivinha: uma ou duas linhas, começando por "Como ler." ou "Nota.". O achado vai no texto.</li>
+          <li>A fonte: "Fonte: dados internos/2026" para os dados internos, nunca o nome de uma tabela do banco de dados, e o nome da fonte com o selo para os dados de fora.</li>
+          <li>"Detalhes da análise", quando o leitor pode querer conferir a conta: abre um quadro com o período, a origem dos dados, os filtros e o método.</li>
+        </ul></dd>
+        <dt>Quando não usar</dt><dd>Um gráfico para dois ou três números, que cabem numa frase ou em cartões.</dd>
+      </dl>
+      <div class="demo s">
+        <p class="variant wide">Duas séries</p>
+        <figure class="wide" id="graf-canais">
+          <div class="fig-head"><div class="k">Gráfico 5</div><div class="t">Pedidos e aprovados por canal, em outubro</div></div>
+          <ul class="legend"><li><i style="background:var(--c1)"></i>Pedidos</li><li><i style="background:var(--c2)"></i>Aprovados</li></ul>
+          <div class="chart" id="chart-channels"></div>
+          <figcaption class="cap"><p><b>Nota.</b> Cada pedido conta uma vez por CNPJ, no canal do primeiro contato.</p><p class="cap-src"><span>Fonte: dados internos/2026</span><button type="button" class="details" data-modal="m-canais">Detalhes da análise</button></p></figcaption>
+        </figure>
+        <p class="variant wide">O máximo: seis entradas, contando Outros</p>
+        <figure class="wide">
+          <div class="fig-head"><div class="k">Gráfico 6</div><div class="t">Clientes da carteira por setor, em outubro</div></div>
+          <ul class="legend"><li><i style="background:var(--c1)"></i>Alimentação</li><li><i style="background:var(--c2)"></i>Varejo</li><li><i style="background:var(--c3)"></i>Serviços</li><li><i style="background:var(--c4)"></i>Saúde</li><li><i style="background:var(--c5)"></i>Beleza</li><li><i style="background:var(--other)"></i>Outros</li></ul>
+          <div class="stack" role="list">
+            <div role="listitem" style="flex:34;--c:var(--c1)" data-tip="Alimentação: 34%"><span><span class="visually-hidden">Alimentação: </span>34%</span><i></i></div>
+            <div role="listitem" style="flex:23;--c:var(--c2)" data-tip="Varejo: 23%"><span><span class="visually-hidden">Varejo: </span>23%</span><i></i></div>
+            <div role="listitem" style="flex:17;--c:var(--c3)" data-tip="Serviços: 17%"><span><span class="visually-hidden">Serviços: </span>17%</span><i></i></div>
+            <div role="listitem" style="flex:12;--c:var(--c4)" data-tip="Saúde: 12%"><span><span class="visually-hidden">Saúde: </span>12%</span><i></i></div>
+            <div role="listitem" style="flex:8;--c:var(--c5)" data-tip="Beleza: 8%"><span><span class="visually-hidden">Beleza: </span>8%</span><i></i></div>
+            <div role="listitem" style="flex:6;--c:var(--other)" data-tip="Outros: 6%"><span><span class="visually-hidden">Outros: </span>6%</span><i></i></div>
+          </div>
+          <figcaption class="cap"><p><b>Nota.</b> Os setores com menos de 5% dos clientes estão somados em Outros.</p><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+      </div>
+
+      <h3 id="e-galeria" data-toc="Qual gráfico para qual pergunta">Qual gráfico para qual pergunta</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Escolher a forma do gráfico pela pergunta que ele responde.</dd>
+        <dt>Quando usar</dt><dd>Antes de desenhar: ache a pergunta na galeria, e use a forma ao lado dela. A cascata, o funil e a grade com cor têm os seus próprios elementos neste catálogo.</dd>
+        <dt>Quando não usar</dt><dd>Pizza, gráfico em 3D e dois eixos verticais no mesmo gráfico: as três formas distorcem a comparação.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="gallery wide" id="gallery"></div>
+      </div>
+
+      <h3 id="e-imagem" data-toc="Imagem com marcações">Imagem com marcações</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar uma tela, um documento ou uma foto, apontando o que importa nela.</dd>
+        <dt>Quando usar</dt><dd>Quando o leitor precisa reconhecer algo que vai ver em outro lugar, como uma tela de um sistema. Os números na imagem correspondem à lista abaixo dela.</dd>
+        <dt>Quando não usar</dt><dd>Para mostrar números que estão na imagem, que vão para uma tabela, ou para uma imagem decorativa.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide">
+          <div class="fig-head"><div class="k">Figura 2</div><div class="t">A tela de contratos do aplicativo</div></div>
+          <div class="shot">
+            <div class="bar"><i></i><i></i><i></i></div>
+            <div class="body">
+              <div class="sidebar"><div class="ln"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:85%"></div><div class="ln" style="width:60%"></div></div>
+              <div class="main"><div class="blk"></div><div class="blk"></div><div class="blk"></div><div class="wide-blk"></div></div>
+            </div>
+            <span class="pin" style="left:36%;top:30%">1</span>
+            <span class="pin" style="left:55%;top:64%">2</span>
+          </div>
+          <ol class="pins"><li><b>1</b><span>O saldo devedor do cliente, com os juros até hoje.</span></li><li><b>2</b><span>As parcelas dos próximos 3 meses, com o vencimento de cada uma.</span></li></ol>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section class="s" id="tabelas">
+      <h2 id="c-tabelas"><span class="num">Grupo 8</span>Tabelas</h2>
+      <p>Uma tabela dá o valor exato para o leitor consultar. Todas usam a mesma fonte e o mesmo tamanho, com algarismos de largura fixa, e seguem as mesmas regras de título, unidade e alinhamento das colunas. O fundo de uma célula só muda quando significa alguma coisa: ao passar o mouse, a linha ganha um cinza quase imperceptível, que nunca se confunde com a linha em destaque. Nenhuma tabela rola na vertical, e a que não cabe na largura da tela, como no celular, rola de lado, com uma barra visível embaixo dela.</p>
+
+      <h3 id="e-tabela" data-toc="Tabela">Tabela</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Dar os números exatos, por grupo.</dd>
+        <dt>Quando usar</dt><dd>Quando o leitor vai procurar um valor ou comparar linhas. A linha de total fecha a tabela com um traço, e a linha em destaque, com fundo de destaque e um traço à esquerda, é a que o parágrafo seguinte discute, no máximo duas por tabela.</dd>
+        <dt>Quando não usar</dt><dd>Quando a tabela só repete os números de um gráfico, o que pede o recolhido.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide" id="tab-atraso">
+          <div class="fig-head"><div class="k">Tabela 3</div><div class="t">A carteira por atraso em 31/10/2026 (R$&nbsp;mi)</div></div>
+          <div class="tbl"><table>
+            <thead><tr><th>Atraso</th><th>Saldo</th><th>Parte da carteira</th><th>Contratos</th></tr></thead>
+            <tbody>
+              <tr><td>Em dia</td><td><span class="un">R$</span>&nbsp;7,6</td><td>91<span class="un">%</span></td><td>284</td></tr>
+              <tr><td>De 1 a 30 dias</td><td><span class="un">R$</span>&nbsp;0,4</td><td>5<span class="un">%</span></td><td>15</td></tr>
+              <tr class="mark"><td>De 31 a 90 dias</td><td><span class="un">R$</span>&nbsp;0,3</td><td>3<span class="un">%</span></td><td>9</td></tr>
+              <tr><td>Acima de 90 dias</td><td><span class="un">R$</span>&nbsp;0,1</td><td>1<span class="un">%</span></td><td>4</td></tr>
+              <tr class="total"><td>Total</td><td><span class="un">R$</span>&nbsp;8,4</td><td>100<span class="un">%</span></td><td>312</td></tr>
+            </tbody>
+          </table></div>
+          <figcaption class="cap"><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+      </div>
+
+      <h3 id="e-colunas" data-toc="Colunas">Título, unidade e alinhamento das colunas</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Fazer o leitor achar a coluna e ler o número sem esforço, em qualquer tabela.</dd>
+        <dt>Regras</dt><dd><ul>
+          <li><b>Título.</b> Diz o que a coluna mede em até duas linhas, e encurta conforme a tabela cresce: até quatro palavras numa tabela de até quatro colunas, até três de cinco a sete colunas, e até duas a partir de oito. O que vale para todas as colunas, como o mês, sobe para o título da tabela, e o que vale para algumas vira o título de um grupo sobre elas.</li>
+          <li><b>Unidade.</b> Fica junto do número sempre que der, e cada parte dela aparece num lugar só:<ul>
+            <li>na célula, o símbolo, menor, mais leve e em cinza, para o olho ler o número primeiro: R$ antes do número e % depois dele, como "<span class="un-demo"><span class="un">R$</span>&nbsp;8,7</span>" e "<span class="un-demo">89<span class="un">%</span></span>";</li>
+            <li>no fim do título da tabela, entre parênteses, a escala, quando ela é a mesma na tabela inteira: "(R$&nbsp;mil)", "(R$&nbsp;mi)", "(% do desembolso)". Quando a escala muda de uma linha ou coluna para outra, ela fica na célula, como "40 mil" e "R$&nbsp;1,4 bi" na tabela com coluna de texto;</li>
+            <li>acima do título da coluna, menor e em cinza, a unidade em palavra, que se repetiria em toda célula: dias, contratos, o "ao mês" de uma taxa. Quando ela vale para todas as colunas de um grupo, fica uma vez, acima do nome do grupo, e quando vale para a tabela inteira, vai no título dela, como "(contratos)".</li>
+          </ul></li>
+          <li><b>À esquerda, o texto:</b> o nome da linha, a categoria, a descrição. A primeira coluna fica sempre à esquerda.</li>
+          <li><b>No centro, o valor curto de largura fixa</b> que não se soma nem se compara pelo tamanho: a data, o código, a situação, o sim ou não.</li>
+          <li><b>À direita, o número</b> que se soma ou se compara: valor, contagem, percentual, prazo. A coluna inteira tem o mesmo número de casas decimais, para as vírgulas ficarem uma sob a outra.</li>
+          <li><b>O título segue a coluna:</b> fica alinhado como ela, e o título de um grupo fica centrado sobre as colunas dele. A grade com cor é a exceção, e centra os valores, porque cada célula se lê sozinha.</li>
+        </ul></dd>
+        <dt>Quando não usar</dt><dd>Uma unidade em palavra repetida em cada célula de uma coluna de números, como "dias" depois de cada prazo: ela ocupa a largura que o número precisa e repete o que o cabeçalho diz uma vez.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide">
+          <div class="fig-head"><div class="k">Tabela 4</div><div class="t">Os cinco maiores contratos assinados em outubro (R$&nbsp;mil)</div></div>
+          <div class="tbl"><table class="cols-demo">
+            <thead>
+              <tr><th>Cliente</th><th class="tl">Setor</th><th class="tc">Assinado em</th><th><span class="u">dias</span>Prazo</th><th>Valor</th><th><span class="u">ao mês</span>Taxa</th><th class="tc">Situação</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Mercado Bom Preço</td><td class="tl">Alimentação</td><td class="tc">03/10/2026</td><td>120</td><td><span class="un">R$</span>&nbsp;180,0</td><td>2,6<span class="un">%</span></td><td class="tc"><span class="status ok">Em dia</span></td></tr>
+              <tr><td>Farmácia São Jorge</td><td class="tl">Saúde</td><td class="tc">07/10/2026</td><td>90</td><td><span class="un">R$</span>&nbsp;150,0</td><td>2,7<span class="un">%</span></td><td class="tc"><span class="status ok">Em dia</span></td></tr>
+              <tr><td>Ótica Primavera</td><td class="tl">Varejo</td><td class="tc">12/10/2026</td><td>120</td><td><span class="un">R$</span>&nbsp;125,0</td><td>3,1<span class="un">%</span></td><td class="tc"><span class="status late">Em atraso</span></td></tr>
+              <tr><td>Pizzaria Central</td><td class="tl">Alimentação</td><td class="tc">15/10/2026</td><td>60</td><td><span class="un">R$</span>&nbsp;97,5</td><td>2,8<span class="un">%</span></td><td class="tc"><span class="status ok">Em dia</span></td></tr>
+              <tr><td>Pet Shop Estrela</td><td class="tl">Serviços</td><td class="tc">21/10/2026</td><td>90</td><td><span class="un">R$</span>&nbsp;80,0</td><td>3,0<span class="un">%</span></td><td class="tc"><span class="status ok">Em dia</span></td></tr>
+            </tbody>
+          </table></div>
+          <figcaption class="cap"><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+      </div>
+
+      <h3 id="e-tabela-grupos" data-toc="Cabeçalho em dois níveis">Tabela com cabeçalho em dois níveis</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Agrupar colunas que medem a mesma coisa em cenários diferentes.</dd>
+        <dt>Quando usar</dt><dd>Quando as colunas se repetem por cenário, como os resultados com perda de 1,5%, 3% e 7% ao ano. O nome do grupo fica centrado sobre as colunas dele. Quando todos os valores estão na mesma escala, como aqui, ela vai no título da tabela, e a célula leva só o R$ e o número.</dd>
+        <dt>Quando não usar</dt><dd>Para um grupo de uma coluna só.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide">
+          <div class="fig-head"><div class="k">Tabela 5</div><div class="t">Carteira e lucro por prazo, com perda de 1,5% e de 7% ao ano (R$&nbsp;mil)</div></div>
+          <div class="tbl"><table>
+            <thead>
+              <tr class="group"><th rowspan="2">Prazo médio</th><th colspan="2">Perda de 1,5%</th><th colspan="2">Perda de 7%</th></tr>
+              <tr class="sub"><th>Carteira</th><th>Lucro por R$&nbsp;1&nbsp;mi</th><th>Carteira</th><th>Lucro por R$&nbsp;1&nbsp;mi</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>60 dias</td><td><span class="un">R$</span>&nbsp;10.769</td><td><span class="un">R$</span>&nbsp;13,0</td><td><span class="un">R$</span>&nbsp;16.634</td><td><span class="un">R$</span>&nbsp;8,4</td></tr>
+              <tr><td>120 dias</td><td><span class="un">R$</span>&nbsp;9.412</td><td><span class="un">R$</span>&nbsp;14,9</td><td><span class="un">R$</span>&nbsp;13.603</td><td><span class="un">R$</span>&nbsp;10,3</td></tr>
+            </tbody>
+          </table></div>
+          <figcaption class="cap"><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+      </div>
+
+      <h3 id="e-tabela-larga" data-toc="Tabela larga">Tabela larga <span class="st">Interativo</span></h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar mais colunas do que cabem na largura da página.</dd>
+        <dt>Quando usar</dt><dd>Quando o leitor precisa de todas as colunas lado a lado. A tabela rola de lado: a primeira coluna fica parada, a borda direita esmaece enquanto há colunas escondidas, e uma barra visível abaixo dela se arrasta, com setas nas pontas. Com tantas colunas, cada título tem até duas palavras, e o que se repete entre colunas vira o título de um grupo, como "Atraso acima de".</dd>
+        <dt>Quando não usar</dt><dd>Quando dá para dividir em duas tabelas, cada uma respondendo a uma pergunta.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide">
+          <div class="fig-head"><div class="k">Tabela 6</div><div class="t">Resultado das safras de junho a setembro (R$&nbsp;mil)</div></div>
+              <div class="tbl"><table class="dense">
+                <thead>
+                  <tr class="group"><th rowspan="2">Safra</th><th rowspan="2">Contratos</th><th rowspan="2">Desembolso</th><th rowspan="2">Ticket médio</th><th rowspan="2"><span class="u">dias</span>Prazo médio</th><th colspan="3">Atraso acima de</th><th rowspan="2">Recuperado</th><th rowspan="2">Juros</th><th rowspan="2">Tarifas</th><th rowspan="2">Resultado</th></tr>
+                  <tr class="sub"><th>30 dias</th><th>60 dias</th><th>90 dias</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Jun/2026</td><td>72</td><td><span class="un">R$</span>&nbsp;2.088</td><td><span class="un">R$</span>&nbsp;29,0</td><td>82</td><td>4,1<span class="un">%</span></td><td>3,0<span class="un">%</span></td><td>2,4<span class="un">%</span></td><td><span class="un">R$</span>&nbsp;12</td><td><span class="un">R$</span>&nbsp;166</td><td><span class="un">R$</span>&nbsp;22</td><td><span class="un">R$</span>&nbsp;150</td></tr>
+                  <tr><td>Jul/2026</td><td>80</td><td><span class="un">R$</span>&nbsp;2.360</td><td><span class="un">R$</span>&nbsp;29,5</td><td>84</td><td>4,4<span class="un">%</span></td><td>3,2<span class="un">%</span></td><td>2,6<span class="un">%</span></td><td><span class="un">R$</span>&nbsp;9</td><td><span class="un">R$</span>&nbsp;192</td><td><span class="un">R$</span>&nbsp;24</td><td><span class="un">R$</span>&nbsp;164</td></tr>
+                  <tr><td>Ago/2026</td><td>86</td><td><span class="un">R$</span>&nbsp;2.580</td><td><span class="un">R$</span>&nbsp;30,0</td><td>85</td><td>3,9<span class="un">%</span></td><td>2,8<span class="un">%</span></td><td>a maturar</td><td><span class="un">R$</span>&nbsp;4</td><td><span class="un">R$</span>&nbsp;212</td><td><span class="un">R$</span>&nbsp;26</td><td>a maturar</td></tr>
+                  <tr><td>Set/2026</td><td>92</td><td><span class="un">R$</span>&nbsp;2.806</td><td><span class="un">R$</span>&nbsp;30,5</td><td>86</td><td>2,7<span class="un">%</span></td><td>a maturar</td><td>a maturar</td><td><span class="un">R$</span>&nbsp;1</td><td><span class="un">R$</span>&nbsp;150</td><td><span class="un">R$</span>&nbsp;28</td><td>a maturar</td></tr>
+                </tbody>
+              </table></div>
+          <figcaption class="cap"><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+      </div>
+
+      <h3 id="e-tabela-texto" data-toc="Coluna de texto">Tabela com coluna de texto</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Pôr ao lado de cada número de onde ele vem.</dd>
+        <dt>Quando usar</dt><dd>Quando cada linha é um passo de uma conta com fonte própria, como o tamanho de um mercado. A coluna de texto fica alinhada à esquerda e leva o selo da fonte.</dd>
+        <dt>Quando não usar</dt><dd>Para um comentário que vale para a tabela inteira, que vai para a nota de leitura.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide">
+          <div class="fig-head"><div class="k">Tabela 7</div><div class="t">O tamanho do mercado, passo a passo</div></div>
+          <div class="tbl"><table>
+            <thead><tr><th>Passo</th><th>Resultado</th><th style="text-align:left">De onde vem</th></tr></thead>
+            <tbody>
+              <tr><td>Empresas ativas na região</td><td>40<span class="un">&nbsp;mil</span></td><td class="txt">Cadastro da junta comercial do estado<a class="ref" href="#f1" data-title="Junta comercial do estado, cadastro de empresas ativas, 2025">1</a></td></tr>
+              <tr><td>Empresas que pedem crédito num ano</td><td>18<span class="un">%</span> a 26<span class="un">%</span></td><td class="txt">Pesquisa de crédito das pequenas empresas<a class="ref" href="#f2" data-title="Associação comercial, pesquisa anual de crédito, 2025">2</a></td></tr>
+              <tr><td>Crédito pedido por ano na região</td><td><span class="un">R$</span>&nbsp;1,4<span class="un">&nbsp;bi</span></td><td class="txt">As 40 mil empresas, vezes os 22<span class="un">%</span> do meio da faixa, vezes o pedido médio de R$&nbsp;160 mil<a class="ref" href="#f2" data-title="Associação comercial, pesquisa anual de crédito, 2025">2</a></td></tr>
+            </tbody>
+          </table></div>
+        </figure>
+      </div>
+
+      <h3 id="e-barra-celula" data-toc="Barra na célula">Barra na célula</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Dar o valor exato e o tamanho relativo na mesma linha.</dd>
+        <dt>Quando usar</dt><dd>Numa coluna que o leitor compara de cima a baixo, como o volume por canal, quando a tabela tem outras colunas que um gráfico não mostraria. O número fica alinhado à direita, e a barra começa logo depois dele, na mesma posição em todas as linhas. Uma tabela pequena como esta fica na largura do conteúdo, alinhada ao texto, como a largura dos blocos diz.</dd>
+        <dt>Quando não usar</dt><dd>Em mais de uma coluna da mesma tabela, ou em percentuais que não somam um todo.</dd>
+      </dl>
+      <div class="demo s">
+        <p>Os parceiros trazem poucos clientes, mas cada um deles pede mais vezes.</p>
+        <figure class="fit">
+          <div class="fig-head"><div class="k">Tabela 8</div><div class="t">Clientes novos e pedidos por canal, em outubro</div></div>
+          <div class="tbl"><table>
+            <thead><tr><th>Canal</th><th>Clientes novos</th><th class="bar-cell" aria-hidden="true"></th><th>Pedidos por cliente</th></tr></thead>
+            <tbody>
+              <tr><td>Mídia paga</td><td>17</td><td class="bar-cell"><span class="cb"><i style="width:100%"></i></span></td><td>1,1</td></tr>
+              <tr><td>Direto</td><td>11</td><td class="bar-cell"><span class="cb"><i style="width:65%"></i></span></td><td>1,3</td></tr>
+              <tr><td>Base própria</td><td>9</td><td class="bar-cell"><span class="cb"><i style="width:53%"></i></span></td><td>1,6</td></tr>
+              <tr><td>Parceiros</td><td>4</td><td class="bar-cell"><span class="cb"><i style="width:24%"></i></span></td><td>2,4</td></tr>
+            </tbody>
+          </table></div>
+          <figcaption class="cap"><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+      </div>
+
+      <h3 id="e-safras" data-toc="Grade com cor">Grade com cor</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar um valor em cada cruzamento de duas dimensões, com a cor do menor para o maior.</dd>
+        <dt>Quando usar</dt><dd>Para safras por mês de vida, ou dia da semana por hora. Uma cor só, mais forte quanto maior o valor, com o valor escrito na célula, e a célula que ainda não existe fica vazia. Ao passar o mouse ou tocar, a célula ganha um contorno e mostra o valor, e a linha não muda de cor, para não apagar a escala.</dd>
+        <dt>Quando não usar</dt><dd>Para valores com sinal, positivos e negativos, que pedem duas cores e um meio neutro.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide">
+          <div class="fig-head"><div class="k">Tabela 9</div><div class="t">Atraso acima de 30 dias por safra e mês de vida (% do desembolso)</div></div>
+          <div class="tbl heat"><table id="cohort"></table></div>
+          <figcaption class="cap"><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+      </div>
+
+      <h3 id="e-interativa" data-toc="Tabela interativa">Tabela interativa <span class="st">Interativo</span></h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Deixar o leitor procurar, filtrar e ordenar uma lista longa, e levar a lista inteira para o Excel.</dd>
+        <dt>Quando usar</dt><dd><ul>
+          <li>Numa lista que cada leitor lê de um jeito e que tem mais linhas do que cabem numa tela, como os clientes ou os contratos.</li>
+          <li><b>Linhas por vez.</b> A tabela mostra 10 linhas, e o leitor escolhe 10, 25 ou 50. Embaixo dela ficam quais linhas aparecem ("11 a 20 de 48") e os botões de página.</li>
+          <li><b>Controles.</b> Acima da tabela, numa linha só: a busca pelo nome, até dois filtros por categoria e o botão de baixar. As setas do cabeçalho ordenam, e buscar, filtrar ou ordenar volta à primeira página.</li>
+          <li><b>Baixar.</b> O botão baixa um arquivo do Excel com a tabela inteira, todas as linhas e colunas, na ordem da tela, qualquer que seja a página ou o filtro. O botão diz quantas linhas vão no arquivo.</li>
+        </ul></dd>
+        <dt>Quando não usar</dt><dd>Numa tabela de até 10 linhas, que se lê inteira, ou quando a ordem é parte do argumento. Uma lista de mais de 1.000 linhas pesa demais no relatório: vai como arquivo à parte, e o relatório mostra o resumo dela.</dd>
+      </dl>
+      <div class="demo s">
+        <figure class="wide" id="itbl">
+          <div class="fig-head"><div class="k">Tabela 10</div><div class="t">Clientes da carteira em 31/10/2026 (R$&nbsp;mil)</div></div>
+          <div class="tbl-tools">
+            <label class="search"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 10.4L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input type="search" placeholder="Buscar cliente" aria-label="Buscar cliente" name="q" data-f="q"></label>
+            <label class="sel"><span>Setor</span><select name="sector" data-f="sector"><option value="">Todos</option></select></label>
+            <label class="sel"><span>Situação</span><select name="status" data-f="status"><option value="">Todas</option></select></label>
+            <button type="button" class="link-btn" data-clear hidden>Limpar filtros</button>
+            <button type="button" class="btn-xl" data-xlsx><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M2.5 13.5h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Baixar Excel<span class="n"></span></button>
+          </div>
+          <div class="tbl"><table class="itable">
+            <thead><tr>
+              <th data-k="name" data-sort="text"><span class="h">Cliente</span></th>
+              <th data-k="sector" data-sort="text" class="tl"><span class="h">Setor</span></th>
+              <th data-k="since" data-sort="num" class="tc"><span class="h">Cliente desde</span></th>
+              <th data-k="contracts" data-sort="num"><span class="h">Contratos</span></th>
+              <th data-k="balance" data-sort="num"><span class="h">Saldo</span></th>
+              <th data-k="daysLate" data-sort="num"><span class="u">dias</span><span class="h">Atraso</span></th>
+              <th data-k="status" data-sort="text" class="tc"><span class="h">Situação</span></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table></div>
+          <div class="pager">
+            <span class="pg-count" aria-live="polite"></span>
+            <label class="sel"><span>Linhas por página</span><select name="per" data-f="per"><option>10</option><option>25</option><option>50</option></select></label>
+            <nav class="pg-nav" aria-label="Páginas da tabela"></nav>
+          </div>
+          <figcaption class="cap"><p class="cap-src">Fonte: dados internos/2026</p></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 9 -->
+    <section class="s" id="interacao">
+      <h2 id="c-interacao"><span class="num">Grupo 9</span>Interação</h2>
+      <p>Estes elementos deixam o leitor escolher o que vê. Impressos, mostram só o estado inicial, e por isso o que todo leitor precisa nunca fica atrás de um clique.</p>
+
+      <h3 id="e-recolhido" data-toc="Recolhido">Recolhido <span class="st">Interativo</span></h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Deixar à mão o detalhe que só parte dos leitores quer, sem alongar a página.</dd>
+        <dt>Quando usar</dt><dd>Para o método de uma conta, a tabela que repete os números de um gráfico, ou a lista completa por trás de um resumo. O título do recolhido diz o que há dentro.</dd>
+        <dt>Quando não usar</dt><dd>Para algo de que a conclusão depende.</dd>
+      </dl>
+      <div class="demo s">
+        <details class="more"><summary>Como a perda foi medida</summary><div>A perda de uma safra é o saldo vencido há mais de 90 dias sobre o valor desembolsado nela, contado no fim de cada mês. As safras com menos de 90 dias ficam fora da média.</div></details>
+      </div>
+
+      <h3 id="e-abas" data-toc="Abas">Abas e seletor de cenário <span class="st">Interativo</span></h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Trocar entre versões do mesmo conteúdo sem repetir a estrutura na página.</dd>
+        <dt>Quando usar</dt><dd>Para cenários com a mesma forma, como a perda de 1,5%, 3% e 5% ao ano, ou para ver o mesmo dado em gráfico ou em tabela. A aba aberta ao carregar é o caso base.</dd>
+        <dt>Quando não usar</dt><dd>Quando o leitor precisa comparar as versões, o que pede o lado a lado ou uma tabela com as três.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="tabs wide" id="tabs">
+          <div role="tablist" aria-label="Perda">
+            <button type="button" role="tab" aria-selected="false" data-k="1.5">Perda de 1,5%</button>
+            <button type="button" role="tab" aria-selected="true" data-k="3">Perda de 3%</button>
+            <button type="button" role="tab" aria-selected="false" data-k="5">Perda de 5%</button>
+          </div>
+          <div class="cards" style="--n:3" id="tab-cards"></div>
+        </div>
+      </div>
+
+      <h3 id="e-simulador" data-toc="Simulador">Simulador <span class="st">Interativo</span></h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Deixar o leitor mudar as premissas e ver o resultado na hora.</dd>
+        <dt>Quando usar</dt><dd>Quando o leitor vai testar valores que o relatório não mostra. Cada campo começa no caso base, e o tipo de campo sai do tipo de valor:</dd>
+        <dt>Os campos</dt><dd><ul>
+          <li><b>Número com unidade</b>, para um valor exato, como uma meta em reais.</li>
+          <li><b>Controle deslizante</b>, para explorar uma faixa contínua, como a perda.</li>
+          <li><b>Botões de opção</b>, para escolher entre dois e quatro valores fixos.</li>
+          <li><b>Lista de opções</b>, para escolher entre cinco valores ou mais.</li>
+          <li><b>Chave liga-desliga</b>, para incluir ou tirar uma parte da conta.</li>
+        </ul></dd>
+        <dt>Quando não usar</dt><dd>Quando três cenários bastam, o que pede as abas, ou quando a conta não cabe no navegador.</dd>
+      </dl>
+      <div class="demo s">
+        <div class="sim wide">
+          <form class="sim-form" id="sim">
+            <div class="field">
+              <label for="f-goal">Lucro alvo por mês</label>
+              <div class="affix"><span>R$</span><input id="f-goal" type="number" min="50" max="500" step="10" value="140" inputmode="numeric"><span>mil</span></div>
+              <p class="type-hint">Número com unidade</p>
+            </div>
+            <div class="field">
+              <label for="f-loss">Perda ao ano <output id="f-loss-out">3%</output></label>
+              <input id="f-loss" type="range" min="0.5" max="10" step="0.5" value="3">
+              <div class="scale"><span>0,5%</span><span>10%</span></div>
+              <p class="type-hint">Controle deslizante</p>
+            </div>
+            <fieldset class="field">
+              <legend>Prazo médio</legend>
+              <div class="seg"><label><input type="radio" name="f-term" value="60"><span>60 dias</span></label><label><input type="radio" name="f-term" value="90" checked><span>90 dias</span></label><label><input type="radio" name="f-term" value="120"><span>120 dias</span></label></div>
+              <p class="type-hint">Botões de opção</p>
+            </fieldset>
+            <div class="field">
+              <label for="f-ticket">Ticket médio</label>
+              <div class="select"><select id="f-ticket"><option value="15000">R$ 15.000</option><option value="20000">R$ 20.000</option><option value="30000" selected>R$ 30.000</option><option value="45000">R$ 45.000</option><option value="60000">R$ 60.000</option></select></div>
+              <p class="type-hint">Lista de opções</p>
+            </div>
+            <div class="field full">
+              <label class="toggle"><input type="checkbox" id="f-opex" checked><span class="knob"></span><span>Descontar o custo operacional</span></label>
+              <p class="type-hint">Chave liga-desliga</p>
+            </div>
+          </form>
+          <div class="sim-out">
+            <div class="res"><div class="v" id="sim-book"></div><div class="l">Carteira necessária</div></div>
+            <div class="res"><div class="v" id="sim-new"></div><div class="l">Contratos novos por mês</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 -->
+    <section class="s" id="fontes">
+      <h2 id="c-fontes"><span class="num">Grupo 10</span>Fontes, links e notas</h2>
+      <p>Estes elementos levam o leitor à origem de um número, ao lugar onde ele é explicado ou a um detalhe que interromperia a frase.</p>
+
+      <h3 id="e-xref" data-toc="Link no texto">Link no texto</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Levar o leitor de uma afirmação ao trecho, à tabela ou ao gráfico que a sustenta.</dd>
+        <dt>Quando usar</dt><dd>O link fica nas palavras que dizem o que o destino mostra, e nunca num "ver seção 3" depois da frase. Ao clicar, a página rola até o destino e o marca por um instante: o trecho de texto ganha um fundo âmbar, e a tabela ou o gráfico, uma borda âmbar.</dd>
+        <dt>Quando não usar</dt><dd>Para uma fonte de fora do relatório, que leva o selo de fonte.</dd>
+      </dl>
+      <div class="demo s"><p>A carteira está concentrada em prazos curtos: <a class="xref" href="#trecho-prazo">62% dela vence em até 60 dias</a>, e <a class="xref" href="#tab-atraso">o atraso acima de 30 dias soma 4% do saldo</a>. Os <a class="xref" href="#graf-canais">parceiros aprovam metade do que a mídia paga aprova</a>.</p></div>
+
+      <h3 id="e-termo" data-toc="Termo com definição">Termo com definição <span class="st">Interativo</span></h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Explicar um termo sem tirar o leitor da frase.</dd>
+        <dt>Quando usar</dt><dd>Para um termo que só uma seção usa, ou para lembrar um termo das definições numa seção longe delas. O sublinhado pontilhado avisa que há definição, que aparece ao passar o mouse ou ao tocar no termo, e some com um toque fora dele.</dd>
+        <dt>Quando não usar</dt><dd>Para um termo de que a frase depende para fazer sentido, que se explica na própria frase, já que impresso a definição some.</dd>
+      </dl>
+      <div class="demo s"><p>O limite é de 15% da <span class="term-def" tabindex="0" data-def="Tudo o que a empresa faturou, antes de impostos e custos.">receita bruta</span> dos últimos 12 meses.</p></div>
+
+      <h3 id="e-lateral" data-toc="Nota lateral">Nota lateral</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Pôr na margem um detalhe que interromperia a frase.</dd>
+        <dt>Quando usar</dt><dd>Para uma ressalva curta, uma conta de apoio ou um contexto que alguns leitores querem. A nota fica pendurada na margem, à direita ou à esquerda, com a maior parte fora da coluna de texto e uma parte dentro dela, e o texto corre em volta. Começa na linha da letra que a chama, e notas próximas alternam de lado. Em tela estreita, vai para logo abaixo do parágrafo.</dd>
+        <dt>Quando não usar</dt><dd>Para a fonte de um número, que leva o selo de fonte, ou para um aviso que muda a leitura, que é o quadro de atenção.</dd>
+      </dl>
+      <div class="demo s">
+        <p>A Acme lucrou R$&nbsp;100 mil por mês no terceiro trimestre<span class="sn-mark">a</span><span class="sidenote right"><b>a</b><span>A média de julho a setembro. Agosto ficou em R$&nbsp;93 mil, por causa de uma safra que atrasou.</span></span>, acima dos R$&nbsp;81 mil do trimestre anterior. O aumento veio de uma carteira maior, e não de uma margem maior: a margem ficou perto de 1,3% ao mês nos dois trimestres, enquanto a carteira média passou de R$&nbsp;6,2 milhões para R$&nbsp;7,7 milhões.</p>
+        <p>Para chegar ao lucro alvo de R$&nbsp;140 mil, a carteira precisa passar de R$&nbsp;10,8 milhões<span class="sn-mark">b</span><span class="sidenote left"><b>b</b><span>O lucro alvo de R$&nbsp;140 mil dividido pela margem de 1,3% ao mês, como na <a href="#e-formula">fórmula</a>.</span></span>. Uma perda maior pede mais carteira para o mesmo lucro: com a perda em 5% ao ano, dois pontos acima da de hoje, a margem cai para 1,13% ao mês, e a carteira necessária sobe para R$&nbsp;12,4 milhões.</p>
+      </div>
+
+      <h3 id="e-fontes" data-toc="Selo e lista de fontes">Selo de fonte e lista de fontes</h3>
+      <dl class="ficha">
+        <dt>Para quê</dt><dd>Mostrar de onde vem cada número de fora e levar à fonte.</dd>
+        <dt>Quando usar</dt><dd>Depois da frase ou da célula que usa a fonte. Ao passar o mouse, o selo mostra a fonte, e ao clicar leva à lista; numa tela de toque, o primeiro toque mostra a fonte e o segundo leva à lista, que fica numa seção própria no fim do relatório.</dd>
+        <dt>Quando não usar</dt><dd>Para um número calculado no próprio relatório, que leva o link no texto.</dd>
+      </dl>
+      <div class="demo s">
+        <p>A região tem 40 mil empresas ativas.<a class="ref" href="#f1" data-title="Junta comercial do estado, cadastro de empresas ativas, 2025">1</a> De 18% a 26% delas pedem crédito num ano.<a class="ref" href="#f2" data-title="Associação comercial, pesquisa anual de crédito, 2025">2</a></p>
+        <ol class="sources">
+          <li id="f1"><span class="ref">1</span><span>Junta comercial do estado, cadastro de empresas ativas, posição de 31/12/2025. <a class="url" href="https://example.org/junta/empresas-ativas">example.org</a></span></li>
+          <li id="f2"><span class="ref">2</span><span>Associação comercial da região, pesquisa anual de crédito das pequenas empresas, 3ª edição, 14/10/2025. <a class="url" href="https://example.org/associacao/pesquisa-credito">example.org</a></span></li>
+        </ol>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog class="analysis" id="m-canais" aria-labelledby="m-canais-t"><div class="m-in">
+  <div class="m-head"><h4 id="m-canais-t">Detalhes da análise</h4><button type="button" class="m-close" aria-label="Fechar">×</button></div>
+  <p class="m-sub">Gráfico 5 · Pedidos e aprovados por canal, em outubro</p>
+  <dl>
+    <dt>Período</dt><dd>01/10/2026 a 31/10/2026</dd>
+    <dt>Dados</dt><dd>Pedidos de crédito e ofertas do banco de dados interno</dd>
+    <dt>Filtros</dt><dd>Um pedido por CNPJ, no canal do primeiro contato, sem pedidos de teste</dd>
+    <dt>Método</dt><dd>Aprovado é o pedido que recebeu uma oferta</dd>
+    <dt>Extraído em</dt><dd>23/11/2026, 14:05 BRT</dd>
+  </dl>
+</div></dialog>
+<dialog class="analysis" id="m-cascata" aria-labelledby="m-cascata-t"><div class="m-in">
+  <div class="m-head"><h4 id="m-cascata-t">Detalhes da análise</h4><button type="button" class="m-close" aria-label="Fechar">×</button></div>
+  <p class="m-sub">Gráfico 3 · Dos juros da carteira ao lucro, em setembro</p>
+  <dl>
+    <dt>Período</dt><dd>Setembro de 2026</dd>
+    <dt>Dados</dt><dd>Pagamentos dos contratos, extratos das linhas de captação e despesas do mês</dd>
+    <dt>Filtros</dt><dd>Carteira média de R$&nbsp;8,0 mi no mês, sem os contratos renegociados</dd>
+    <dt>Método</dt><dd>Perda é a perda esperada de 3% ao ano sobre a carteira média; a captação, pelo custo contratado de 1,1% ao mês</dd>
+    <dt>Extraído em</dt><dd>23/11/2026, 14:05 BRT</dd>
+  </dl>
+</div></dialog>
+
+<script>
+/* The catalog's data and the calls that draw its examples. Every function called here lives in
+   report.js; a report copies the call with its markup and changes only the data. */
+
+groupedColumns(document.getElementById('chart-channels'), {
+  labels: ['Mídia paga', 'Parceiros', 'Base própria', 'Direto', 'Orgânico'],
+  series: [{ name: 'Pedidos', token: '--c1', values: [260, 140, 90, 80, 30] }, { name: 'Aprovados', token: '--c2', values: [150, 75, 60, 55, 20] }],
+  max: 300, ticks: [0, 100, 200, 300], aria: 'Pedidos e aprovados por canal',
+});
+
+waterfall(document.getElementById('chart-waterfall'), {
+  steps: [['Juros', 232, 'total'], ['Captação', -88], ['Perda', -20], ['Operação', -20], ['Lucro', 104, 'total']],
+  max: 250, aria: 'Cascata dos juros da carteira até o lucro de setembro',
+  format: (v) => `R$ ${fmt.num(v)} mil`,
+});
+
+/* The invented model behind the sensitivity table, the tabs and the simulator: the margin each
+   real of portfolio leaves per month (%), and the portfolio a monthly profit target needs (R$ mi). */
+const INTEREST = 2.9, FUNDING = 1.1, OPEX_AT_30_DAYS = 0.75;
+const margin = (lossPerYear, termDays, withOpex = true) => INTEREST - FUNDING - lossPerYear / 12 - (withOpex ? OPEX_AT_30_DAYS * 30 / termDays : 0);
+const portfolioNeeded = (profitThousand, lossPerYear, termDays, withOpex = true) => profitThousand / 10 / margin(lossPerYear, termDays, withOpex);
+/* A portfolio turns over once per term: new loans per month = portfolio × 30 / term, in contracts of one ticket. */
+const newContracts = (portfolioMi, termDays, ticket) => Math.round(portfolioMi * 1e6 * 30 / termDays / ticket);
+
+const losses = [1.5, 3, 5, 7], terms = [30, 60, 90, 120];
+heatGrid(document.getElementById('sens'), {
+  corner: 'Perda ao ano', group: 'Prazo médio do empréstimo',
+  columns: terms.map((d) => `${d} dias`),
+  rows: losses.map((p) => ({ label: fmt.pct(p, p % 1 ? 1 : 0), values: terms.map((d) => portfolioNeeded(140, p, d)) })),
+  cell: (v) => `<span class="un">R$</span> ${fmt.num(v, 1)}`,
+  tip: (row, column, v) => `Perda de ${row} ao ano, prazo de ${column}: R$ ${fmt.num(v, 1)} mi`,
+  base: [1, 2],
+});
+
+heatGrid(document.getElementById('cohort'), {
+  corner: 'Safra', group: 'Mês de vida', columns: ['1', '2', '3', '4'],
+  rows: [
+    { label: 'Jun/2026', values: [0.6, 1.8, 3.0, 4.1] },
+    { label: 'Jul/2026', values: [0.7, 2.0, 3.4, 4.4] },
+    { label: 'Ago/2026', values: [0.9, 2.6, 3.9] },
+    { label: 'Set/2026', values: [1.0, 2.7] },
+  ],
+  range: [0, 4.4],
+  cell: (v) => `${fmt.num(v, 1)}<span class="un">%</span>`,
+  tip: (row, column, v) => `${row}, mês ${column}: ${fmt.num(v, 1)}%`,
+});
+
+/* Invented clients for the interactive table, from a fixed seed so every opening shows the same list. */
+const clients = (() => {
+  let seed = 20281206;
+  const rand = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+  const kinds = [['Padaria', 'Alimentação'], ['Mercado', 'Alimentação'], ['Restaurante', 'Alimentação'], ['Pizzaria', 'Alimentação'], ['Lanchonete', 'Alimentação'],
+    ['Farmácia', 'Saúde'], ['Clínica', 'Saúde'], ['Ótica', 'Saúde'], ['Pet Shop', 'Serviços'], ['Oficina', 'Serviços'], ['Gráfica', 'Serviços'], ['Lavanderia', 'Serviços'],
+    ['Papelaria', 'Varejo'], ['Calçados', 'Varejo'], ['Boutique', 'Varejo'], ['Móveis', 'Varejo'], ['Materiais', 'Varejo']];
+  const names = ['Santa Clara', 'Bom Preço', 'São Jorge', 'do Bairro', 'Central', 'Nova Era', 'Primavera', 'Vitória', 'Estrela', 'Boa Vista', 'Real', 'Paraíso', 'Ipê', 'Aurora', 'Jardim', 'Esperança', 'Imperial', 'Avenida'];
+  const used = new Set(), list = [];
+  while (list.length < 48) {
+    const [kind, sector] = kinds[Math.floor(rand() * kinds.length)];
+    const name = `${kind} ${names[Math.floor(rand() * names.length)]}`;
+    if (used.has(name)) continue;
+    used.add(name);
+    const year = 2024 + Math.floor(rand() * 3), month = 1 + Math.floor(rand() * (year === 2026 ? 10 : 12));
+    const late = rand();
+    const daysLate = late < 0.9 ? 0 : late < 0.97 ? 1 + Math.floor(rand() * 60) : 91 + Math.floor(rand() * 60);
+    list.push({
+      name, sector, since: year * 100 + month, contracts: 1 + Math.floor(rand() ** 2 * 4),
+      balance: Math.round((8 + rand() ** 2 * 172) * 10) / 10, daysLate,
+      status: daysLate === 0 ? 'Em dia' : daysLate <= 90 ? 'Em atraso' : 'Perda',
+    });
+  }
+  return list;
+})();
+const STATUS_CLASS = { 'Em dia': 'ok', 'Em atraso': 'risk', 'Perda': 'late' };
+const monthYear = (v) => `${String(v % 100).padStart(2, '0')}/${Math.floor(v / 100)}`;
+interactiveTable(document.getElementById('itbl'), clients, {
+  noun: 'clientes', file: 'clientes.xlsx', sheet: 'Clientes', search: 'name',
+  sort: { key: 'balance', asc: false },
+  empty: 'Nenhum cliente com esses filtros.',
+  header: ['Cliente', 'Setor', 'Cliente desde', 'Contratos', 'Saldo (R$ mil)', 'Atraso (dias)', 'Situação'],
+  cell: {
+    since: (r) => monthYear(r.since),
+    balance: (r) => `<span class="un">R$</span>&nbsp;${fmt.num(r.balance, 1)}`,
+    status: (r) => `<span class="status ${STATUS_CLASS[r.status]}">${r.status}</span>`,
+  },
+  exportValue: { since: (r) => monthYear(r.since) },
+});
+
+const tabCards = document.getElementById('tab-cards');
+tabs(document.getElementById('tabs'), (loss) => {
+  const book = portfolioNeeded(140, Number(loss), 90);
+  tabCards.innerHTML = `<div class="card"><div class="v">R$&nbsp;${fmt.num(book, 1)}<small> mi</small></div><div class="l">Carteira necessária</div></div>` +
+    `<div class="card"><div class="v">${fmt.num(margin(Number(loss), 90), 2)}%</div><div class="l">Margem ao mês</div></div>` +
+    `<div class="card"><div class="v">${fmt.num(newContracts(book, 90, 30000))}</div><div class="l">Contratos novos por mês</div></div>`;
+});
+
+simulator(document.getElementById('sim'), (form) => {
+  const goal = Math.max(0, Number(form.querySelector('#f-goal').value) || 0);
+  const loss = parseFloat(form.querySelector('#f-loss').value);
+  const term = Number(form.querySelector('input[name="f-term"]:checked').value);
+  const ticket = Number(form.querySelector('#f-ticket').value);
+  const book = portfolioNeeded(goal, loss, term, form.querySelector('#f-opex').checked);
+  form.querySelector('#f-loss-out').textContent = fmt.pct(loss, loss % 1 ? 1 : 0);
+  document.getElementById('sim-book').textContent = `R$ ${fmt.num(book, 1)} mi`;
+  document.getElementById('sim-new').textContent = fmt.num(newContracts(book, term, ticket));
+});
+
+/* Gallery of chart forms: each thumbnail drawn with the theme's series colors. */
+(() => {
+  const s1 = 'var(--c1)', s2 = 'var(--c2)', s3 = 'var(--c3)', ln = 'var(--line)', ink = 'var(--ink)';
+  const svg = (body) => `<svg viewBox="0 0 260 120" aria-hidden="true">${body}</svg>`;
+  const rect = (x, y, w, h, f, extra = '') => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="${f}" ${extra}/>`;
+  const base = `<line x1="0" x2="260" y1="112" y2="112" stroke="${ln}"/>`;
+  const forms = [
+    ['Barras ordenadas', 'Quem pesa mais: um valor por grupo, do maior para o menor.', () => svg([210, 160, 118, 80, 44].map((w, i) => rect(0, 6 + i * 23, w, 15, s1)).join(''))],
+    ['Colunas agrupadas', 'Comparar duas ou três medidas em poucos grupos.', () => svg(base + [[70, 40], [95, 55], [52, 30], [80, 50]].map(([a, b], g) => rect(14 + g * 64, 112 - a, 20, a, s1) + rect(36 + g * 64, 112 - b, 20, b, s2)).join(''))],
+    ['Barras de 100%', 'A composição de cada grupo, quando importa a proporção.', () => svg([[50, 30, 20], [35, 40, 25], [60, 25, 15], [25, 45, 30]].map((seg, i) => { let x = 0; return seg.map((v, j) => { const w = v * 2.6 - 2; const r = rect(x, 8 + i * 27, w, 18, [s1, s2, s3][j]); x += v * 2.6; return r; }).join(''); }).join(''))],
+    ['Linha', 'A evolução de uma a quatro séries ao longo do tempo.', () => svg(base + `<path d="M0,90 L37,84 L74,78 L111,70 L148,64 L185,50 L222,42 L258,30" fill="none" stroke="${s1}" stroke-width="2.5"/><path d="M0,100 L37,98 L74,92 L111,94 L148,86 L185,84 L222,76 L258,72" fill="none" stroke="${s2}" stroke-width="2.5"/>`)],
+    ['Ritmo contra meta', 'O acumulado do período contra a meta, com a projeção até o fim.', () => svg(base + `<line x1="0" y1="110" x2="258" y2="14" stroke="${ink}" stroke-dasharray="4 4" stroke-width="1.5"/><path d="M150,62 L258,22 L258,52 Z" fill="${s1}" opacity=".18"/><path d="M0,110 L30,100 L60,92 L90,80 L120,72 L150,62" fill="none" stroke="${s1}" stroke-width="2.5"/><circle cx="150" cy="62" r="4" fill="${s1}"/>`)],
+    ['Colunas empilhadas no tempo', 'A composição de um total mês a mês.', () => svg(base + [[30, 20, 10], [36, 22, 12], [40, 28, 14], [46, 30, 16], [50, 34, 18], [54, 36, 20]].map((seg, i) => { let y = 112; return seg.map((h, j) => { y -= h; return rect(8 + i * 42, y, 32, h - 1.5, [s1, s2, s3][j]); }).join(''); }).join(''))],
+    ['Faixa de percentis', 'Como um valor se espalha em cada grupo: mediana e faixas.', () => svg([[20, 60, 95, 140, 220], [40, 80, 110, 150, 200], [10, 30, 55, 90, 160], [60, 100, 130, 170, 240]].map(([a, b, m, c, d], i) => { const y = 16 + i * 28; return `<line x1="${a}" x2="${d}" y1="${y}" y2="${y}" stroke="${s1}" stroke-width="2"/>` + rect(b, y - 8, c - b, 16, s1, 'opacity=".8"') + `<circle cx="${m}" cy="${y}" r="5" fill="var(--bg)" stroke="${ink}" stroke-width="2"/>`; }).join(''))],
+    ['Histograma', 'Como uma medida se distribui, e onde uma regra corta.', () => svg(base + [8, 20, 38, 62, 84, 96, 88, 66, 44, 26, 14, 6].map((h, i) => rect(i * 21.6 + 1, 112 - h, 19.6, h, s1)).join('') + `<line x1="152" x2="152" y1="4" y2="112" stroke="${s2}" stroke-width="2" stroke-dasharray="4 3"/>`)],
+    ['Dispersão', 'A relação entre duas medidas, um ponto por entidade.', () => svg(base + `<line x1="0" y1="112" x2="258" y2="6" stroke="${ln}" stroke-dasharray="4 4"/>` + Array.from({ length: 34 }, (_, i) => { const x = 8 + (i * 53) % 245, y = 104 - x * 0.28 - ((i * 37) % 28); return `<circle cx="${x}" cy="${Math.max(6, y)}" r="4" fill="${i % 5 ? s1 : s2}" opacity=".85"/>`; }).join(''))],
+    ['Halteres', 'Quanto cada grupo muda entre duas versões ou dois períodos.', () => svg([[40, 120], [70, 100], [150, 90], [60, 190], [110, 160]].map(([a, b], i) => { const y = 14 + i * 23; return `<line x1="${a}" x2="${b}" y1="${y}" y2="${y}" stroke="${ln}" stroke-width="4"/><circle cx="${a}" cy="${y}" r="6" fill="${s1}"/><circle cx="${b}" cy="${y}" r="6" fill="${s2}"/>`; }).join(''))],
+    ['Quadrados', 'Quantos casos há de cada tipo, um quadrado por caso.', () => svg(Array.from({ length: 50 }, (_, i) => { const c = i % 10, r = Math.floor(i / 10); return rect(c * 26 + 1, r * 24 + 2, 22, 20, i < 28 ? s1 : i < 42 ? s2 : s3); }).join(''))],
+    ['Bala', 'O realizado contra a meta, grupo a grupo.', () => svg([[180, 210], [140, 200], [220, 190]].map(([v, t], i) => { const y = 10 + i * 36; return rect(0, y, 258, 26, 'var(--recess)') + rect(0, y + 8, v, 10, s1) + `<line x1="${t}" x2="${t}" y1="${y + 3}" y2="${y + 23}" stroke="${ink}" stroke-width="3"/>`; }).join(''))],
+  ];
+  document.getElementById('gallery').innerHTML = forms.map(([name, use, draw]) => `<div class="g-item">${draw()}<b>${name}</b><span>${use}</span></div>`).join('');
+})();
+</script>
+</body>
+</html>

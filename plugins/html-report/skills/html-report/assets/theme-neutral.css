@@ -1,0 +1,36 @@
+/* THEME */
+:root{
+  color-scheme: light;
+  --ink:#1a1a19; --muted:#52514e; --faint:#6b6a66;
+  --bg:#ffffff; --panel:#ffffff; --recess:#f4f4f2; --line:#e5e4df; --line-strong:#bdbbb4;
+  --accent:#1f6ac2; --accent-soft:#e6f0fb; --brand:#2a78d6; --mark:#e6f0fb;
+  --pos:#007e38; --pos-soft:#e0f7e5; --neg:#c63133; --neg-soft:#ffe8e4; --warn:#a05a00; --warn-soft:#ffecd8;
+  --c1:#2a78d6; --c2:#eb6834; --c3:#0e9c8f; --c4:#c97a00; --c5:#6b5bc4; --c6:#c44c86; --other:#b9b8b2; --heat-span:60%;
+  --h0:#e8eef4; --h1:#c8d8e6; --h2:#9db9d2; --h3:#6f95b8; --h4:#456f99; --h5:#28496e; --h6:#12263c;
+  --on-lo:#1a1a19; --on-hi:#ffffff; --on-flip:4;
+}
+@media screen and (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --ink:#f0efec; --muted:#c9c8bf; --faint:#a6a49c;
+    --bg:#161615; --panel:#20201e; --recess:#1b1b1a; --line:#353430; --line-strong:#4f4e49;
+    --accent:#6da7ec; --accent-soft:#1c2a3b; --brand:#3987e5; --mark:#1c2a3b;
+    --pos:#32aa61; --pos-soft:#193220; --neg:#f6605a; --neg-soft:#3f2220; --warn:#cc822c; --warn-soft:#3b2612;
+    --c1:#3987e5; --c2:#d95926; --c3:#14a596; --c4:#c98500; --c5:#9085e9; --c6:#d55181; --other:#5c5b56; --heat-span:68%;
+    --h0:#1f2a35; --h1:#273d52; --h2:#335573; --h3:#456b92; --h4:#6f95b8; --h5:#9db9d2; --h6:#cfdeeb;
+    --on-lo:#f0efec; --on-hi:#161615; --on-flip:4;
+  }
+}
+@media screen{
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --ink:#f0efec; --muted:#c9c8bf; --faint:#a6a49c;
+    --bg:#161615; --panel:#20201e; --recess:#1b1b1a; --line:#353430; --line-strong:#4f4e49;
+    --accent:#6da7ec; --accent-soft:#1c2a3b; --brand:#3987e5; --mark:#1c2a3b;
+    --pos:#32aa61; --pos-soft:#193220; --neg:#f6605a; --neg-soft:#3f2220; --warn:#cc822c; --warn-soft:#3b2612;
+    --c1:#3987e5; --c2:#d95926; --c3:#14a596; --c4:#c98500; --c5:#9085e9; --c6:#d55181; --other:#5c5b56; --heat-span:68%;
+    --h0:#1f2a35; --h1:#273d52; --h2:#335573; --h3:#456b92; --h4:#6f95b8; --h5:#9db9d2; --h6:#cfdeeb;
+    --on-lo:#f0efec; --on-hi:#161615; --on-flip:4;
+  }
+}
+/* /THEME */
