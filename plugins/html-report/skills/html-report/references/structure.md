@@ -117,7 +117,7 @@ A useful check: if the table would have more than a few thousand rows, nobody is
 - **`<title>`**: what the report answers plus the scope. `Retenção por safra · out/2023 a jul/2026`. Never "report", never "index", never the file name. It becomes the tab, the listing entry and how the link is referred to.
 - **`<html lang>` and `data-currency`**: the language and the currency `fmt` formats in, `pt-BR` and `BRL` in the skeleton.
 - **Eyebrow**: organisation and subject, e.g. `Acme · Carteira de crédito`.
-- **`<h1>`**: the report's answer in one sentence. It starts right of the contents list and runs wider than the text column.
+- **`<h1>`**: the conclusion in one sentence when the report argues for a number or a finding, or the decision or question when the report prepares a decision the reader has to take (`references/writing.md`, The headline). It starts right of the contents list and runs wider than the text column.
 - **`.hdr-meta` line**: when it was generated, the data's own as-of date ("Dados até"), and the confidentiality label (`.conf`). The two dates differ, and the reader needs the second one more.
 - **The summary**: the first `section.s`, with no title of its own, from one to three short paragraphs that go from the goal to the conclusion with the numbers in the text (`#e-abertura` in the catalog).
 

@@ -24,8 +24,8 @@ Every report starts as a draft copied from `assets/skeleton.html`, which links t
 ## Group 1. Opening and structure
 
 ### Title and executive summary (`#e-abertura`)
-- **For:** giving the report's answer on the first screen.
-- **When:** every report. The `<h1>` states the answer in one sentence and fills the column's width; under it come the dates and the classification, a rule closes the `<header>`, and the summary follows with no title, one to three short paragraphs from the goal to the conclusion, numbers in the text. Sections start after it. The catalog's example is this opening as a report draws it.
+- **For:** saying on the first screen what the report is about and what its answer is.
+- **When:** every report. The `<h1>` fills the column's width, and what it says depends on what the report does: a report that argues for a number or a finding states that conclusion in one sentence; a report that prepares a decision the reader has to take names the decision or the question, which gives the context for the rest, and leaves the answer to the summary. Under it come the dates and the classification, a rule closes the `<header>`, and the summary follows with no title, one to three short paragraphs from the goal to the conclusion, numbers in the text. Sections start after it. The catalog's example is this opening as a report draws it.
 - **Not:** a summary that repeats the title, lists the order of the sections, points to them, or puts its numbers in cards.
 - **Copy:** nothing: the skeleton's `<header>` (`.eyebrow`, `h1`, `.hdr-meta` with "Gerado em", "Dados até" and `.conf`) and its first `section.s` are already in the draft.
 
