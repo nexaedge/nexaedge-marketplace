@@ -472,7 +472,8 @@ details.more > div{margin-top:12px;padding:16px 20px;border-left:2px solid var(-
 .sim-out .res{border:1px solid var(--line);border-radius:12px;padding:18px;background:var(--recess)}
 .sim-out .v{font:700 30px/1.1 var(--f-ui);font-variant-numeric:tabular-nums;white-space:nowrap}
 .sim-out .l{font:600 16px/1.35 var(--f-ui);margin-top:8px}
-.term-def{border-bottom:1.5px dotted var(--muted);cursor:help}
+/* The underline is a text decoration, so the touch hit area's padding never moves it off the word. */
+.term-def{text-decoration:underline dotted var(--muted);text-decoration-thickness:1.5px;text-underline-offset:.25em;text-decoration-skip-ink:none;cursor:help}
 @media (pointer:coarse){.term-def{cursor:pointer}}
 .term-def:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
 
