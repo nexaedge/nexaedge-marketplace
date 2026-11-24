@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: html-report v9] - 2026-11-24
+
+### Changed
+- fix: keep the term underline on the word on touch (#25)
+
+## [Marketplace v65] - 2026-11-24
+
+### Changed
+- fix: keep the term underline on the word on touch (#25)
+
 ## [Plugin: html-report v8] - 2026-11-24
 
 ### Changed
