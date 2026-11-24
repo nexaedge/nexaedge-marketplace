@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: html-report v8] - 2026-11-24
+
+### Changed
+- docs: let the html-report title name the decision (#24)
+
+## [Marketplace v64] - 2026-11-24
+
+### Changed
+- docs: let the html-report title name the decision (#24)
+
 ## [Plugin: html-report v7] - 2026-11-24
 
 ### Changed
