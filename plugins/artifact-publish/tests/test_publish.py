@@ -4,7 +4,7 @@ import os
 import sys
 import time
 import urllib.parse
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from datetime import timedelta, timezone
 from pathlib import Path
 from types import ModuleType
@@ -154,20 +154,47 @@ def test_a_service_in_another_place_is_where_addresses_are_read() -> None:
         (PAGE, publish.PageRef("", PAGE)),
         (KEY, publish.PageRef(DOMAIN, PAGE)),
         (f"{SERVICE}/a/{KEY}", publish.PageRef(DOMAIN, PAGE)),
-        ("https://example.com/landing?x=1", publish.ExternalUrl("https://example.com/landing?x=1")),
-        (f"{SERVICE}/s/some-token", publish.ExternalUrl(f"{SERVICE}/s/some-token")),
+        (f"{SERVICE}/raw/{KEY}", publish.PageRef(DOMAIN, PAGE)),
+        (f"{SERVICE}/c/{KEY}", publish.PageRef(DOMAIN, PAGE)),
     ],
-    ids=["path", "key", "service address", "external url", "service address that is no page"],
+    ids=["path", "key", "a address", "raw address", "c address"],
 )
-def test_a_target_is_a_page_or_an_https_address_sent_as_written(
-    text: str, expected: object
+def test_a_target_is_a_path_a_key_or_a_service_address_of_a_page(
+    text: str, expected: tuple[str, str]
 ) -> None:
     assert publish.parse_target(text, SERVICE) == expected
 
 
-def test_a_target_over_plain_http_is_refused() -> None:
-    with pytest.raises(publish.Failure):
-        publish.parse_target("http://example.com/landing", SERVICE)
+@pytest.mark.parametrize("route", ["a", "raw", "c"])
+def test_every_page_route_of_the_service_resolves_to_the_same_key(route: str) -> None:
+    assert publish.parse_page(f"{SERVICE}/{route}/{KEY}", SERVICE) == (DOMAIN, PAGE)
+
+
+@pytest.mark.parametrize("parse", [publish.parse_page, publish.parse_target])
+def test_a_share_link_is_refused_because_it_names_no_page(
+    parse: Callable[[str, str], tuple[str, str]],
+) -> None:
+    with pytest.raises(publish.Failure, match="share link.*names no page.*path or its /a/ address"):
+        parse(f"{SERVICE}/s/some-token", SERVICE)
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["https://example.com/landing?x=1", f"{SERVICE}/api/artifacts", f"{SERVICE}/",
+     "http://example.com/landing"],
+    ids=["other host", "other route of the service", "service root", "plain http"],
+)
+def test_a_target_that_is_not_a_page_of_the_service_is_refused(text: str) -> None:
+    with pytest.raises(publish.Failure, match="target must be a page of the same domain"):
+        publish.parse_target(text, SERVICE)
+
+
+def test_an_external_url_is_refused_as_a_redirect_target_before_signing_in(
+    service: FakeService, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert run("redirect", KEY, "https://example.com/x") == 1
+    assert "target must be a page of the same domain" in capsys.readouterr().err
+    assert service.signed_in == [] and service.calls == []
 
 
 # --- picking the account -----------------------------------------------------
@@ -426,7 +453,7 @@ def test_get_reports_a_file_it_cannot_write(service: FakeService, tmp_path: Path
 def test_rm_deletes_the_page_and_warns_about_each_redirect_left_dangling(
     service: FakeService, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    service.answers(200, {"key": KEY, "deleted": True, "state_deleted": False,
+    service.answers(200, {"key": KEY, "deleted": True, "state_deleted": 0,
                           "dangling": [f"{DOMAIN}/a/x.html", f"{DOMAIN}/b/y.html"]})
     assert run("rm", KEY) == 0
     call = service.only_call
@@ -447,13 +474,18 @@ def test_rm_refused_for_saved_state_says_how_many_and_what_to_add(
     assert "3 people saved state" in err and "--with-state" in err
 
 
-def test_rm_with_state_sends_the_flag(
-    service: FakeService, capsys: pytest.CaptureFixture[str]
+@pytest.mark.parametrize(
+    ("count", "line"),
+    [(1, "The saved state of 1 person went with it."),
+     (3, "The saved state of 3 people went with it.")],
+)
+def test_rm_with_state_sends_the_flag_and_says_how_many_people_s_state_went(
+    service: FakeService, capsys: pytest.CaptureFixture[str], count: int, line: str
 ) -> None:
-    service.answers(200, {"key": KEY, "deleted": True, "state_deleted": True, "dangling": []})
+    service.answers(200, {"key": KEY, "deleted": True, "state_deleted": count, "dangling": []})
     assert run("rm", KEY, "--with-state") == 0
     assert service.only_call.query == {"key": KEY, "with_state": "1"}
-    assert "saved state went with it" in capsys.readouterr().out
+    assert capsys.readouterr().out == f"Removed {KEY}. {line}\n"
 
 
 def test_rm_of_a_missing_page_says_so(
@@ -485,13 +517,13 @@ def test_redirect_posts_both_keys_and_prints_old_to_new(
     assert capsys.readouterr().out == f"{SERVICE}/a/{KEY} → {SERVICE}/a/{new_key}\n"
 
 
-def test_redirect_to_an_external_url_sends_it_as_written(
-    service: FakeService, capsys: pytest.CaptureFixture[str]
+@pytest.mark.parametrize("route", ["raw", "c"])
+def test_redirect_to_a_raw_or_c_address_of_a_page_targets_its_key(
+    service: FakeService, route: str
 ) -> None:
-    service.answers(201, {"key": KEY, "to": "https://example.com/x", "url": f"{SERVICE}/a/{KEY}"})
-    run("redirect", KEY, "https://example.com/x")
-    assert service.only_call.body == {"key": KEY, "to": "https://example.com/x"}
-    assert capsys.readouterr().out == f"{SERVICE}/a/{KEY} → https://example.com/x\n"
+    service.answers(201, {"key": KEY, "to": "x", "url": "u"})
+    assert run("redirect", KEY, f"{SERVICE}/{route}/{DOMAIN}/cerc/novo.html") == 0
+    assert service.only_call.body == {"key": KEY, "to": f"{DOMAIN}/cerc/novo.html"}
 
 
 def test_redirect_accepts_service_addresses_for_both_pages(service: FakeService) -> None:

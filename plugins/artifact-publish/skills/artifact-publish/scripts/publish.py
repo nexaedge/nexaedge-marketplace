@@ -17,8 +17,9 @@
     publish.py state <page> [-o FILE]      what people saved on the page, as JSON
 
 A <page> is a path in the account's domain (cerc/plan.html), a key
-(acme.com/cerc/plan.html) or the page's address on the service. A key or an
-address names its domain, which picks the account when --as is absent.
+(acme.com/cerc/plan.html) or the page's address on the service (/a/, /raw/ or
+/c/). A key or an address names its domain, which picks the account when --as
+is absent. A redirect <target> is a page of the same domain, in the same forms.
 
 THE ACCOUNT DECIDES WHO CAN OPEN IT. An artifact belongs to the domain of the
 Google account that published it, and only accounts of that domain can open it.
@@ -479,22 +480,30 @@ class PageRef(NamedTuple):
     path: str
 
 
-class ExternalUrl(NamedTuple):
-    """A redirect target outside the service, sent as it was written."""
-
-    url: str
+_PAGE_ROUTES = frozenset({"a", "raw", "c"})
 
 
 def _service_page(text: str, service: str) -> PageRef | None:
-    """The page a service address names, or None when the address is not one."""
+    """The page a service address names, or None when the address is not a page route.
+
+    A share link (`/s/<token>`) names no page and is refused.
+    """
     address = urllib.parse.urlsplit(text)
     base = urllib.parse.urlsplit(service)
     if (address.scheme, address.netloc.lower()) != (base.scheme, base.netloc.lower()):
         return None
-    prefix = f"{base.path.rstrip('/')}/a/"
-    if not address.path.startswith(prefix):
+    root = f"{base.path.rstrip('/')}/"
+    if not address.path.startswith(root):
         return None
-    domain, _, path = urllib.parse.unquote(address.path[len(prefix):]).strip("/").partition("/")
+    route, _, rest = address.path[len(root):].partition("/")
+    if route == "s":
+        raise Failure(
+            f"{text} is a share link, which names no page: "
+            "pass the page's path or its /a/ address."
+        )
+    if route not in _PAGE_ROUTES:
+        return None
+    domain, _, path = urllib.parse.unquote(rest).strip("/").partition("/")
     if not domain or not path:
         raise Failure(f"{text} does not name a page.")
     return PageRef(domain.lower(), path)
@@ -515,26 +524,27 @@ def _page_of_text(text: str) -> PageRef:
     return PageRef("", path)
 
 
-def parse_page(text: str, service: str) -> PageRef:
+def _parse(text: str, service: str, refusal: str) -> PageRef:
     text = text.strip()
     if "://" not in text:
         return _page_of_text(text)
     page = _service_page(text, service)
     if page is None:
-        raise Failure(f"{text} is not a page on {service}.")
+        raise Failure(refusal.format(text=text))
     return page
 
 
-def parse_target(text: str, service: str) -> PageRef | ExternalUrl:
-    text = text.strip()
-    if "://" not in text:
-        return _page_of_text(text)
-    page = _service_page(text, service)
-    if page is not None:
-        return page
-    if text.lower().startswith("https://"):
-        return ExternalUrl(text)
-    raise Failure(f"{text} cannot be a target: use a page of the account or an https:// URL.")
+def parse_page(text: str, service: str) -> PageRef:
+    return _parse(text, service, f"{{text}} is not a page on {service}.")
+
+
+def parse_target(text: str, service: str) -> PageRef:
+    return _parse(
+        text,
+        service,
+        "{text} cannot be a redirect target: the target must be a page of the same domain, "
+        f"given as a path, a key or its {service}/a/ address.",
+    )
 
 
 def account_for(asked: str | None, pages: list[PageRef]) -> Account:
@@ -765,8 +775,9 @@ def cmd_rm(args: argparse.Namespace) -> int:
     if reply.status != 200:
         raise refused_for(reply, key)
     result = reply.data
-    print(f"Removed {key}." + (" Its saved state went with it." if result.get("state_deleted")
-                               else ""))
+    saved = int(result.get("state_deleted") or 0)
+    went_with_it = f" The saved state of {people(saved)} went with it." if saved else ""
+    print(f"Removed {key}.{went_with_it}")
     for dangling in result.get("dangling") or []:
         print(
             f"Warning: {dangling} still redirects to {key}, which is gone. "
@@ -780,16 +791,14 @@ def cmd_redirect(args: argparse.Namespace) -> int:
     service = service_url()
     page = parse_page(args.page, service)
     target = parse_target(args.target, service)
-    named = [page] + ([target] if isinstance(target, PageRef) else [])
-    session = open_session(account_for(args.account, named), service)
+    session = open_session(account_for(args.account, [page, target]), service)
 
     key = session.key(page.path)
-    to = target.url if isinstance(target, ExternalUrl) else session.key(target.path)
+    to = session.key(target.path)
     reply = call(session, "POST", "/api/artifacts/redirect", payload={"key": key, "to": to})
     if reply.status != 201:
         raise refused(reply)
-    new_address = to if isinstance(target, ExternalUrl) else session.address(to)
-    print(f"{reply.data.get('url') or session.address(key)} → {new_address}")
+    print(f"{reply.data.get('url') or session.address(key)} → {session.address(to)}")
     return 0
 
 
@@ -850,8 +859,8 @@ def _command_parser() -> argparse.ArgumentParser:
     command("rm", "remove a page").add_argument(
         "--with-state", action="store_true",
         help="also delete the state people saved on the page")
-    redirect = command("redirect", "make a page's address lead to another page or URL")
-    redirect.add_argument("target", help="the new page (path, key, address) or an https:// URL")
+    redirect = command("redirect", "make a page's address lead to another page of the domain")
+    redirect.add_argument("target", help="the new page (path, key or address) of the same domain")
     share = command("share", "a link to the page that opens without sign-in")
     expiry = share.add_mutually_exclusive_group(required=True)
     expiry.add_argument("--days", type=int, choices=(7, 30), help="the link expires in N days")

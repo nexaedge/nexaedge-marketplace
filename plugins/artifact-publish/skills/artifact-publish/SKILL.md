@@ -64,7 +64,7 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/publish.py" list
 python3 "${CLAUDE_SKILL_DIR}/scripts/publish.py" redirect cerc/old.html cerc/new.html
 ```
 
-Every command takes `--as <domain>`, with the same account resolution as publishing. A `<page>` is a path in the account's domain (`cerc/plan.html`), a key (`acme.com/cerc/plan.html`) or the page's address on the service (`https://artifacts.nexaedge.com/a/acme.com/cerc/plan.html`). A key or an address names its domain, which picks the account when `--as` is absent; a domain that contradicts `--as` is an error.
+Every command takes `--as <domain>`, with the same account resolution as publishing. A `<page>` is a path in the account's domain (`cerc/plan.html`), a key (`acme.com/cerc/plan.html`) or the page's address on the service (`https://artifacts.nexaedge.com/a/acme.com/cerc/plan.html`; the `/raw/` and `/c/` forms of the address name the same page). A share link (`/s/<token>`) names no page and is refused. A key or an address names its domain, which picks the account when `--as` is absent; a domain that contradicts `--as` is an error.
 
 | Command | What it does |
 |---|---|
@@ -72,13 +72,13 @@ Every command takes `--as <domain>`, with the same account resolution as publish
 | `info <page> [--json]` | address, owner, update date, size and how many people saved state on it |
 | `get <page> [-o FILE]` | the page's HTML, to a file or to stdout |
 | `rm <page> [--with-state]` | remove a page |
-| `redirect <page> <target>` | make `<page>`'s address lead to `<target>`: a page (path, key or address) or any other `https://` URL; prints old address → new address |
+| `redirect <page> <target>` | make `<page>`'s address lead to `<target>`: a page of the same domain (path, key or address); a target on another domain or a URL is refused; prints old address → new address |
 | `share <page> --days 7\|30` or `--forever` | a link that opens without sign-in; `--forever` has no expiry |
 | `state <page> [-o FILE]` | what people saved on the page, as JSON, for every participant |
 
 **When to use which:**
 
-- **A page moved or was replaced by another: `redirect` at its old path.** Links already sent keep working, and the person who opens one lands on the current page. Publish the new page first when the target is a page of the service.
+- **A page moved or was replaced by another: `redirect` at its old path.** Links already sent keep working, and the person who opens one lands on the current page. Publish the new page first: the target is always a page of the same domain.
 - **`rm` is for what has nowhere to go.** A page that has a successor gets a redirect, not a removal.
 - **Removing a page people saved state on needs `--with-state`.** Without it the service refuses and the command says how many people saved state; the flag deletes that state together with the page. Ask before using it: it cannot be undone.
 - **After `rm`, read the warnings.** Each one names a redirect that pointed at the removed page and now leads nowhere: point it elsewhere with `redirect` or remove it.

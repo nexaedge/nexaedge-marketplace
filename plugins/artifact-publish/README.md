@@ -40,13 +40,12 @@ publish.py list                                   # newest first; redirects show
 publish.py info cerc/plan.html                    # address, owner, size, people who saved state
 publish.py get cerc/plan.html -o plan.html        # the HTML, to a file (stdout without -o)
 publish.py redirect cerc/old.html cerc/new.html   # old address → new address
-publish.py redirect cerc/old.html https://example.com/landing
 publish.py rm cerc/old.html [--with-state]        # --with-state also deletes saved state
 publish.py share cerc/plan.html --days 7          # or --days 30, or --forever
 publish.py state cerc/plan.html -o state.json     # what every participant saved
 ```
 
-Every command takes `--as <domain>`. A page is a path in the account's domain (`cerc/plan.html`), a key (`acme.com/cerc/plan.html`) or the page's address on the service; a key or an address names its domain, which picks the account when `--as` is absent and is an error when it contradicts `--as`. A redirect target is a page in the same forms, or any other `https://` URL.
+Every command takes `--as <domain>`. A page is a path in the account's domain (`cerc/plan.html`), a key (`acme.com/cerc/plan.html`) or the page's address on the service (`/a/`, `/raw/` or `/c/`; a share link names no page and is refused); a key or an address names its domain, which picks the account when `--as` is absent and is an error when it contradicts `--as`. A redirect target is always a page of the same domain, in the same forms; the service refuses any other URL.
 
 Move a page by redirecting its old path to the new one, so links already sent keep working; remove only what has nowhere to go. Removing a page people saved state on needs `--with-state`, and removing a page that redirects point at warns about each of them.
 
