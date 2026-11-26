@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish a self-contained HTML file as an artifact and print the link.
+"""Publish a self-contained HTML file as an artifact, and manage what is published.
 
     publish.py report.html                 publish with the default account
     publish.py report.html --as acme.com   publish as another domain's account
@@ -7,6 +7,18 @@
     publish.py report.html --slug proposal force the folder on the server
     publish.py --whoami [--as acme.com]    show the signed-in account
     publish.py --logout [--as acme.com]    forget the account on this machine
+
+    publish.py list [--json]               what this account published, newest first
+    publish.py info <page> [--json]        one page: address, owner, size, saved state
+    publish.py get <page> [-o FILE]        download its HTML
+    publish.py rm <page> [--with-state]    remove it (and the state people saved on it)
+    publish.py redirect <page> <target>    make an old address lead to a new one
+    publish.py share <page> --days 7|30    a link that needs no login (--forever: no expiry)
+    publish.py state <page> [-o FILE]      what people saved on the page, as JSON
+
+A <page> is a path in the account's domain (cerc/plan.html), a key
+(acme.com/cerc/plan.html) or the page's address on the service. A key or an
+address names its domain, which picks the account when --as is absent.
 
 THE ACCOUNT DECIDES WHO CAN OPEN IT. An artifact belongs to the domain of the
 Google account that published it, and only accounts of that domain can open it.
@@ -48,6 +60,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import webbrowser
+from collections.abc import Callable
+from datetime import datetime, timezone, tzinfo
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -455,8 +469,410 @@ def publish(account: Account, path: str, slug: str | None, share_days: int,
     return {str(k): str(v) for k, v in json.loads(body).items()}
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="publish.py", description=__doc__)
+# --- naming a page -----------------------------------------------------------
+
+
+class PageRef(NamedTuple):
+    """A page as the person wrote it. The domain is empty when the text names none."""
+
+    domain: str
+    path: str
+
+
+class ExternalUrl(NamedTuple):
+    """A redirect target outside the service, sent as it was written."""
+
+    url: str
+
+
+def _service_page(text: str, service: str) -> PageRef | None:
+    """The page a service address names, or None when the address is not one."""
+    address = urllib.parse.urlsplit(text)
+    base = urllib.parse.urlsplit(service)
+    if (address.scheme, address.netloc.lower()) != (base.scheme, base.netloc.lower()):
+        return None
+    prefix = f"{base.path.rstrip('/')}/a/"
+    if not address.path.startswith(prefix):
+        return None
+    domain, _, path = urllib.parse.unquote(address.path[len(prefix):]).strip("/").partition("/")
+    if not domain or not path:
+        raise Failure(f"{text} does not name a page.")
+    return PageRef(domain.lower(), path)
+
+
+def _page_of_text(text: str) -> PageRef:
+    """A key (`acme.com/cerc/plan.html`) or a path in the account (`cerc/plan.html`).
+
+    A published path is always `<folder>/<file>`, so a first segment with a dot
+    followed by two more segments is a domain and a key.
+    """
+    path = text.strip("/")
+    if not path:
+        raise Failure("A page is missing: give its path, key or address.")
+    domain, _, rest = path.partition("/")
+    if "." in domain and "/" in rest:
+        return PageRef(domain.lower(), rest)
+    return PageRef("", path)
+
+
+def parse_page(text: str, service: str) -> PageRef:
+    text = text.strip()
+    if "://" not in text:
+        return _page_of_text(text)
+    page = _service_page(text, service)
+    if page is None:
+        raise Failure(f"{text} is not a page on {service}.")
+    return page
+
+
+def parse_target(text: str, service: str) -> PageRef | ExternalUrl:
+    text = text.strip()
+    if "://" not in text:
+        return _page_of_text(text)
+    page = _service_page(text, service)
+    if page is not None:
+        return page
+    if text.lower().startswith("https://"):
+        return ExternalUrl(text)
+    raise Failure(f"{text} cannot be a target: use a page of the account or an https:// URL.")
+
+
+def account_for(asked: str | None, pages: list[PageRef]) -> Account:
+    """`--as` when given, else the domain the pages name, else the usual resolution.
+
+    A page that names a domain contradicting `--as` is an error, raised before
+    any sign-in opens.
+    """
+    named = sorted({page.domain for page in pages if page.domain})
+    if len(named) > 1:
+        raise Failure(
+            f"These addresses belong to different domains ({', '.join(named)}); "
+            "a page and its redirect target share one."
+        )
+    if not asked:
+        return pick_account(named[0] if named else None)
+    account = pick_account(asked)
+    if named and named[0] != account.domain:
+        raise Failure(f"The page is on {named[0]}, but --as asks for {account.domain}.")
+    return account
+
+
+# --- calling the service -----------------------------------------------------
+
+
+class Session(NamedTuple):
+    service: str
+    token: str
+    domain: str
+
+    def key(self, path: str) -> str:
+        return f"{self.domain}/{path}"
+
+    def address(self, key: str) -> str:
+        return f"{self.service}/a/{key}"
+
+
+class Reply(NamedTuple):
+    status: int
+    body: bytes
+
+    @property
+    def data(self) -> dict[str, Any]:
+        try:
+            parsed = json.loads(self.body)
+        except ValueError as exc:
+            raise Failure(f"The service sent an unreadable answer ({self.status}).") from exc
+        if not isinstance(parsed, dict):
+            raise Failure(f"The service answered with something unexpected ({self.status}).")
+        return parsed
+
+    @property
+    def error(self) -> str:
+        return _error_of(self.body, self.status)
+
+
+def open_session(account: Account, service: str) -> Session:
+    token, email = id_token(account, service)
+    domain = account.domain or (email.split("@")[-1] if "@" in email else "")
+    if not domain:
+        raise Failure("Could not tell the account's domain from the sign-in.")
+    return Session(service, token, domain)
+
+
+def call(session: Session, method: str, route: str, *, query: dict[str, str] | None = None,
+         payload: dict[str, Any] | None = None) -> Reply:
+    url = f"{session.service}{route}"
+    if query:
+        url += f"?{urllib.parse.urlencode(query)}"
+    headers = {"Authorization": f"Bearer {session.token}"}
+    data = None
+    if payload is not None:
+        data = json.dumps(payload).encode()
+        headers["Content-Type"] = "application/json"
+    return Reply(*_request(url, data=data, headers=headers, method=method))
+
+
+def refused(reply: Reply) -> Failure:
+    if reply.status in (401, 403):
+        return Failure(
+            f"{reply.error}\nThe service did not accept this account. "
+            "Pick the right one with --as <domain>."
+        )
+    return Failure(f"The service refused it ({reply.status}): {reply.error}")
+
+
+def refused_for(reply: Reply, key: str) -> Failure:
+    if reply.status == 404:
+        return Failure(f"{key} is not published.")
+    return refused(reply)
+
+
+# --- showing what the service returned --------------------------------------
+
+
+def moment(iso: str) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise Failure(f"The service sent a date that cannot be read: {iso!r}.") from exc
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def format_moment(iso: str, zone: tzinfo | None = None) -> str:
+    """The moment in `zone` (this machine's by default), with the zone written."""
+    return moment(iso).astimezone(zone).strftime("%Y-%m-%d %H:%M %Z")
+
+
+def human_size(count: int) -> str:
+    if count < 1024:
+        return f"{count} B"
+    value = float(count)
+    for unit in ("KB", "MB"):
+        value /= 1024
+        if value < 1024:
+            return f"{value:.1f} {unit}"
+    return f"{value / 1024:.1f} GB"
+
+
+def people(count: int) -> str:
+    return f"{count} person" if count == 1 else f"{count} people"
+
+
+def listing(artifacts: list[dict[str, Any]], zone: tzinfo | None = None) -> list[str]:
+    """One line per page, newest first: when, title, path, and size or redirect."""
+    newest_first = sorted(artifacts, key=lambda page: moment(page["updated"]), reverse=True)
+    rows = [
+        (
+            format_moment(page["updated"], zone),
+            str(page.get("title") or "-"),
+            str(page["path"]),
+            f"→ {page['redirect']}" if page.get("redirect") else human_size(int(page["size"])),
+        )
+        for page in newest_first
+    ]
+    title_width = max((len(row[1]) for row in rows), default=0)
+    path_width = max((len(row[2]) for row in rows), default=0)
+    return [
+        f"{when}  {title.ljust(title_width)}  {path.ljust(path_width)}  {detail}"
+        for when, title, path, detail in rows
+    ]
+
+
+def write_out(data: bytes, output: str | None) -> None:
+    """Writes to `output`, or to stdout when it is absent."""
+    if not output:
+        sys.stdout.flush()
+        sys.stdout.buffer.write(data)
+        sys.stdout.buffer.flush()
+        return
+    target = Path(output).expanduser()
+    try:
+        target.write_bytes(data)
+    except OSError as exc:
+        raise Failure(f"Could not write {target}: {exc.strerror}") from exc
+    print(f"Saved {target} ({human_size(len(data))}).")
+
+
+# --- the commands ------------------------------------------------------------
+
+
+def _open_page(args: argparse.Namespace) -> tuple[Session, str]:
+    """Signs in as the account the page belongs to and returns the page's key."""
+    service = service_url()
+    page = parse_page(args.page, service)
+    session = open_session(account_for(args.account, [page]), service)
+    return session, session.key(page.path)
+
+
+def cmd_list(args: argparse.Namespace) -> int:
+    session = open_session(account_for(args.account, []), service_url())
+    reply = call(session, "GET", "/api/artifacts")
+    if reply.status != 200:
+        raise refused(reply)
+    artifacts = reply.data.get("artifacts") or []
+    if args.json:
+        newest_first = sorted(artifacts, key=lambda page: moment(page["updated"]), reverse=True)
+        print(json.dumps(newest_first, indent=2, ensure_ascii=False))
+    elif artifacts:
+        print("\n".join(listing(artifacts)))
+    else:
+        print(f"Nothing is published under {session.domain}.")
+    return 0
+
+
+def cmd_info(args: argparse.Namespace) -> int:
+    session, key = _open_page(args)
+    reply = call(session, "GET", "/api/artifacts/info", query={"key": key})
+    if reply.status != 200:
+        raise refused_for(reply, key)
+    info = reply.data
+    if args.json:
+        print(json.dumps(info, indent=2, ensure_ascii=False))
+        return 0
+    print(info.get("title") or "-")
+    print(info.get("url") or session.address(key))
+    print(f"Path:     {info.get('path')}")
+    print(f"Owner:    {info.get('owner')}")
+    print(f"Updated:  {format_moment(str(info['updated']))}")
+    print(f"Size:     {human_size(int(info.get('size') or 0))}")
+    print(f"Saved by: {people(int(info.get('answers') or 0))}")
+    if info.get("redirect"):
+        print(f"Redirects to: {info['redirect']}")
+    return 0
+
+
+def cmd_get(args: argparse.Namespace) -> int:
+    session, key = _open_page(args)
+    reply = call(session, "GET", "/api/artifacts/raw", query={"key": key})
+    if reply.status == 409:
+        raise Failure(f"{key} is a redirect to {reply.data.get('redirect')}: it has no HTML.")
+    if reply.status != 200:
+        raise refused_for(reply, key)
+    write_out(reply.body, args.output)
+    return 0
+
+
+def cmd_rm(args: argparse.Namespace) -> int:
+    session, key = _open_page(args)
+    query = {"key": key, **({"with_state": "1"} if args.with_state else {})}
+    reply = call(session, "DELETE", "/api/artifacts", query=query)
+    if reply.status == 409 and not args.with_state:
+        saved = int(reply.data.get("answers") or 0)
+        raise Failure(
+            f"{people(saved)} saved state on {key}. Removing the page deletes that too: "
+            "add --with-state to go ahead."
+        )
+    if reply.status != 200:
+        raise refused_for(reply, key)
+    result = reply.data
+    print(f"Removed {key}." + (" Its saved state went with it." if result.get("state_deleted")
+                               else ""))
+    for dangling in result.get("dangling") or []:
+        print(
+            f"Warning: {dangling} still redirects to {key}, which is gone. "
+            "Point it somewhere else with redirect, or remove it.",
+            file=sys.stderr,
+        )
+    return 0
+
+
+def cmd_redirect(args: argparse.Namespace) -> int:
+    service = service_url()
+    page = parse_page(args.page, service)
+    target = parse_target(args.target, service)
+    named = [page] + ([target] if isinstance(target, PageRef) else [])
+    session = open_session(account_for(args.account, named), service)
+
+    key = session.key(page.path)
+    to = target.url if isinstance(target, ExternalUrl) else session.key(target.path)
+    reply = call(session, "POST", "/api/artifacts/redirect", payload={"key": key, "to": to})
+    if reply.status != 201:
+        raise refused(reply)
+    new_address = to if isinstance(target, ExternalUrl) else session.address(to)
+    print(f"{reply.data.get('url') or session.address(key)} → {new_address}")
+    return 0
+
+
+def cmd_share(args: argparse.Namespace) -> int:
+    session, key = _open_page(args)
+    days = None if args.forever else args.days
+    reply = call(session, "POST", "/api/share", payload={"key": key, "days": days})
+    if reply.status != 200:
+        raise refused_for(reply, key)
+    result = reply.data
+    label = f"{result['days']}-day link" if result.get("days") else "Link with no expiry"
+    print(f"{label}, no sign-in: {result['url']}")
+    return 0
+
+
+def cmd_state(args: argparse.Namespace) -> int:
+    session, key = _open_page(args)
+    reply = call(session, "GET", "/api/state/all", query={"key": key})
+    if reply.status != 200:
+        raise refused_for(reply, key)
+    write_out((json.dumps(reply.data, indent=2, ensure_ascii=False) + "\n").encode(), args.output)
+    return 0
+
+
+COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
+    "list": cmd_list,
+    "info": cmd_info,
+    "get": cmd_get,
+    "rm": cmd_rm,
+    "redirect": cmd_redirect,
+    "share": cmd_share,
+    "state": cmd_state,
+}
+
+
+def _command_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="publish.py", description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    commands = parser.add_subparsers(dest="command", required=True, metavar="command")
+
+    def command(name: str, summary: str, *, pages: tuple[str, ...] = ("page",)
+                ) -> argparse.ArgumentParser:
+        sub = commands.add_parser(name, help=summary, description=summary)
+        for page in pages:
+            sub.add_argument(page, help="path, key or address of the page")
+        sub.add_argument("--as", dest="account", metavar="DOMAIN",
+                         help="account to use (default: the page's domain, the configured "
+                              "or the only one)")
+        sub.set_defaults(run=COMMANDS[name])
+        return sub
+
+    command("list", "what this account published, newest first", pages=()
+            ).add_argument("--json", action="store_true", help="print the raw JSON")
+    command("info", "one page's address, owner, size and saved state"
+            ).add_argument("--json", action="store_true", help="print the raw JSON")
+    command("get", "download a page's HTML").add_argument(
+        "-o", "--output", metavar="FILE", help="write to FILE instead of stdout")
+    command("rm", "remove a page").add_argument(
+        "--with-state", action="store_true",
+        help="also delete the state people saved on the page")
+    redirect = command("redirect", "make a page's address lead to another page or URL")
+    redirect.add_argument("target", help="the new page (path, key, address) or an https:// URL")
+    share = command("share", "a link to the page that opens without sign-in")
+    expiry = share.add_mutually_exclusive_group(required=True)
+    expiry.add_argument("--days", type=int, choices=(7, 30), help="the link expires in N days")
+    expiry.add_argument("--forever", action="store_true", help="the link never expires")
+    command("state", "what people saved on the page, as JSON").add_argument(
+        "-o", "--output", metavar="FILE", help="write to FILE instead of stdout")
+    return parser
+
+
+def run_command(argv: list[str]) -> int:
+    args = _command_parser().parse_args(argv)
+    try:
+        return int(args.run(args))
+    except Failure as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+
+def publish_main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="publish.py", description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("file", nargs="?", help="the self-contained .html")
     parser.add_argument("--as", dest="account", metavar="DOMAIN",
                         help="account that publishes (default: the configured or only one)")
@@ -500,6 +916,14 @@ def main(argv: list[str] | None = None) -> int:
     if not args.no_open:
         webbrowser.open(result["url"])
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    """A first argument that names a command runs it; anything else is the file to publish."""
+    arguments = sys.argv[1:] if argv is None else argv
+    if arguments and arguments[0] in COMMANDS:
+        return run_command(arguments)
+    return publish_main(arguments)
 
 
 if __name__ == "__main__":
