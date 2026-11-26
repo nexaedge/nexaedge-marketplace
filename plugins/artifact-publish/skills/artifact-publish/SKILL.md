@@ -27,6 +27,8 @@ The first run per account opens a browser to sign in with Google. After that the
 | `--whoami` | show the signed-in account (accepts `--as`) |
 | `--relogin` | sign in again, to switch accounts |
 
+A first argument that is a command name (`list`, `info`, `get`, `rm`, `redirect`, `share`, `state`) runs that command instead of publishing. See [Managing what is published](#managing-what-is-published).
+
 ## Pick the account before publishing
 
 **The account decides who can open it.** The artifact belongs to the domain of the account that published it, and only accounts of that domain get in. Getting this wrong raises no error: it produces a link the intended reader cannot open.
@@ -54,6 +56,34 @@ Prefer **self-contained**: CSS, JS and data inside the file, images as data URIs
 What the isolated origin (`sandbox allow-scripts`, no `allow-same-origin`) does cost is anything tied to an origin: **`localStorage`, `sessionStorage` and cookies are unavailable**, so a page cannot remember anything between visits. The document's own JavaScript runs normally, canvas and blob downloads included.
 
 Publishing again with the same path overwrites it, and the link stays the same.
+
+## Managing what is published
+
+```bash
+python3 "${CLAUDE_SKILL_DIR}/scripts/publish.py" list
+python3 "${CLAUDE_SKILL_DIR}/scripts/publish.py" redirect cerc/old.html cerc/new.html
+```
+
+Every command takes `--as <domain>`, with the same account resolution as publishing. A `<page>` is a path in the account's domain (`cerc/plan.html`), a key (`acme.com/cerc/plan.html`) or the page's address on the service (`https://artifacts.nexaedge.com/a/acme.com/cerc/plan.html`; the `/raw/` and `/c/` forms of the address name the same page). A share link (`/s/<token>`) names no page and is refused. A key or an address names its domain, which picks the account when `--as` is absent; a domain that contradicts `--as` is an error.
+
+| Command | What it does |
+|---|---|
+| `list [--json]` | what this account published, newest first: date (local time, with the zone), title, path, and the size, or `→ target` for a redirect |
+| `info <page> [--json]` | address, owner, update date, size and how many people saved state on it |
+| `get <page> [-o FILE]` | the page's HTML, to a file or to stdout |
+| `rm <page> [--with-state]` | remove a page |
+| `redirect <page> <target>` | make `<page>`'s address lead to `<target>`: a page of the same domain (path, key or address); a target on another domain or a URL is refused; prints old address → new address |
+| `share <page> --days 7\|30` or `--forever` | a link that opens without sign-in; `--forever` has no expiry |
+| `state <page> [-o FILE]` | what people saved on the page, as JSON, for every participant |
+
+**When to use which:**
+
+- **A page moved or was replaced by another: `redirect` at its old path.** Links already sent keep working, and the person who opens one lands on the current page. Publish the new page first: the target is always a page of the same domain.
+- **`rm` is for what has nowhere to go.** A page that has a successor gets a redirect, not a removal.
+- **Removing a page people saved state on needs `--with-state`.** Without it the service refuses and the command says how many people saved state; the flag deletes that state together with the page. Ask before using it: it cannot be undone.
+- **After `rm`, read the warnings.** Each one names a redirect that pointed at the removed page and now leads nowhere: point it elsewhere with `redirect` or remove it.
+- **`list` first** when the task is to clean up or to find what a path was: it shows redirects and sizes, and `info` shows who saved state before an `rm`.
+- `get` brings a published page back to a file to edit and republish; `state` exports what people answered.
 
 ## Configuration (optional)
 

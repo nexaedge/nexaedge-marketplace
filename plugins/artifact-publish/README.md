@@ -10,7 +10,7 @@ It exists because a self-contained HTML solves "generate" but not "share": sendi
 
 For people outside the domain, `--share N` returns a link that opens with no sign-in and expires in N days.
 
-The listing shows only what **you** published, not the whole domain. There is no index of who uses the service.
+`list` shows only what **you** published, not the whole domain. There is no index of who uses the service.
 
 ## Install
 
@@ -30,6 +30,24 @@ python3 <skill-dir>/scripts/publish.py report.html
 python3 <skill-dir>/scripts/publish.py report.html --as acme.com --share 7
 python3 <skill-dir>/scripts/publish.py --whoami
 ```
+
+## Manage what is published
+
+The same script lists, inspects, downloads, removes and redirects what the account published. A first argument that names a command runs it; anything else is the file to publish.
+
+```bash
+publish.py list                                   # newest first; redirects show "→ target"
+publish.py info cerc/plan.html                    # address, owner, size, people who saved state
+publish.py get cerc/plan.html -o plan.html        # the HTML, to a file (stdout without -o)
+publish.py redirect cerc/old.html cerc/new.html   # old address → new address
+publish.py rm cerc/old.html [--with-state]        # --with-state also deletes saved state
+publish.py share cerc/plan.html --days 7          # or --days 30, or --forever
+publish.py state cerc/plan.html -o state.json     # what every participant saved
+```
+
+Every command takes `--as <domain>`. A page is a path in the account's domain (`cerc/plan.html`), a key (`acme.com/cerc/plan.html`) or the page's address on the service (`/a/`, `/raw/` or `/c/`; a share link names no page and is refused); a key or an address names its domain, which picks the account when `--as` is absent and is an error when it contradicts `--as`. A redirect target is always a page of the same domain, in the same forms; the service refuses any other URL.
+
+Move a page by redirecting its old path to the new one, so links already sent keep working; remove only what has nowhere to go. Removing a page people saved state on needs `--with-state`, and removing a page that redirects point at warns about each of them.
 
 ## Configuration (optional)
 
